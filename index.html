@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Proformas Tech</title>
+    
+    <!-- Fuentes: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- html2pdf.js para exportar a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- Iconos -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            dark: '#0f172a',    // Grafito/Negro
+                            corp: '#1e3a8a',    // Azul corporativo
+                            tech: '#2563eb',    // Azul tecnológico
+                            light: '#06b6d4',   // Celeste brillante
+                            accent: '#f97316',  // Naranja acento
+                            bg: '#f8fafc',      // Gris claro fondo
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+
+        /* Estilos específicos para la vista previa simulando hoja A4 */
+        .a4-preview {
+            width: 100%;
+            max-width: 210mm;
+            min-height: 297mm;
+            background: white;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            margin: 0 auto;
+            padding: 20mm;
+            position: relative;
+        }
+
+        /* Ocultar barra de desplazamiento en el contenedor de vista previa */
+        .hide-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .hide-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .hide-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+        }
+
+        /* Estilos de impresión */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #preview-section, #preview-section * {
+                visibility: visible;
+            }
+            #preview-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+            }
+            .a4-preview {
+                box-shadow: none;
+                padding: 0;
+                min-height: auto;
+            }
+            /* Ocultar elementos UI durante impresión */
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        /* Efecto focus en inputs */
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-sm">
+
+    <!-- Header / Navbar -->
+    <header class="bg-white border-b border-gray-200 h-16 flex items-center px-6 justify-between shrink-0 z-10">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded bg-brand-corp flex items-center justify-center text-white">
+                <i data-lucide="cpu" class="w-5 h-5"></i>
+            </div>
+            <h1 class="font-bold text-lg text-brand-dark tracking-tight">Proforma<span class="text-brand-tech">Tech</span></h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="clearForm()" class="px-4 py-2 text-gray-600 hover:text-brand-accent hover:bg-orange-50 rounded-lg transition-colors flex items-center gap-2 font-medium">
+                <i data-lucide="trash-2" class="w-4 h-4"></i> Limpiar
+            </button>
+            <button onclick="window.print()" class="px-4 py-2 bg-brand-tech hover:bg-brand-corp text-white rounded-lg transition-colors flex items-center gap-2 font-medium shadow-sm">
+                <i data-lucide="printer" class="w-4 h-4"></i> Imprimir
+            </button>
+            <button onclick="generatePDF()" class="px-4 py-2 bg-brand-accent hover:bg-orange-600 text-white rounded-lg transition-colors flex items-center gap-2 font-medium shadow-sm">
+                <i data-lucide="download" class="w-4 h-4"></i> Descargar PDF
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- LADO IZQUIERDO: Formulario -->
+        <section class="w-full lg:w-1/2 lg:min-w-[500px] xl:w-[45%] h-full overflow-y-auto hide-scrollbar bg-brand-bg p-6 border-r border-gray-200">
+            <div class="max-w-2xl mx-auto space-y-8 pb-20">
+
+                <!-- Datos del Negocio -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-xs font-bold text-brand-light uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <i data-lucide="building-2" class="w-4 h-4"></i> Datos de tu Empresa
+                    </h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2 flex items-center gap-4">
+                            <div class="w-16 h-16 rounded border border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden relative group cursor-pointer" onclick="document.getElementById('logoInput').click()">
+                                <img id="logoPreviewImg" src="" alt="Logo" class="hidden w-full h-full object-contain p-1 z-10 bg-white">
+                                <div id="logoPlaceholder" class="text-gray-400 flex flex-col items-center">
+                                    <i data-lucide="image-plus" class="w-5 h-5 mb-1"></i>
+                                    <span class="text-[10px]">Logo</span>
+                                </div>
+                                <div class="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center z-20">
+                                    <i data-lucide="upload" class="w-5 h-5 text-white"></i>
+                                </div>
+                                <input type="file" id="logoInput" class="hidden" accept="image/*" onchange="handleLogoUpload(event)">
+                            </div>
+                            <div class="flex-1">
+                                <input type="text" id="f_bizName" placeholder="Nombre del Negocio" value="KGB TECHNOLOGY" class="w-full text-base font-bold border-b border-gray-200 pb-1 px-1 focus:border-brand-tech bg-transparent transition-colors" oninput="updatePreview()">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Teléfono Fijo</label>
+                            <input type="text" id="f_bizPhone" placeholder="(01) 555-1234" value="(01) 555-1234" class="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm" oninput="updatePreview()">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">WhatsApp</label>
+                            <input type="text" id="f_bizWsp" placeholder="+51 999 888 777" value="+51 999 888 777" class="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm" oninput="updatePreview()">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs text-gray-500 mb-1">Dirección del Negocio</label>
+                            <input type="text" id="f_bizAddress" placeholder="Av. Tecnológica 123, Ciudad" value="Av. Tecnológica 123, Centro Financiero" class="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm" oninput="updatePreview()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Meta Datos de Proforma -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex gap-4">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">N° Proforma</label>
+                        <div class="flex items-center bg-gray-50 border border-gray-200 rounded-md px-3 py-2">
+                            <span class="text-gray-400 mr-1 font-mono">PF-</span>
+                            <input type="text" id="f_profNumber" class="w-full bg-transparent font-mono font-bold text-brand-corp focus:outline-none" oninput="updatePreview()">
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Fecha</label>
+                        <input type="date" id="f_date" class="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-700" onchange="updatePreview()">
+                    </div>
+                </div>
+
+                <!-- Datos del Cliente -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-xs font-bold text-brand-light uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <i data-lucide="user" class="w-4 h-4"></i> Datos del Cliente
+                    </h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-xs text-gray-500 mb-1">Nombre / Razón Social</label>
+                            <input type="text" id="f_clientName" placeholder="Ej. Juan Pérez" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-tech focus:border-transparent transition-all" oninput="updatePreview()">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Teléfono / Celular</label>
+                            <input type="text" id="f_clientPhone" placeholder="Ej. 987 654 321" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-tech focus:border-transparent transition-all" oninput="updatePreview()">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Dirección (Opcional)</label>
+                            <input type="text" id="f_clientAddress" placeholder="Dirección del cliente" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-tech focus:border-transparent transition-all" oninput="updatePreview()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detalles de Componentes -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xs font-bold text-brand-light uppercase tracking-wider flex items-center gap-2">
+                            <i data-lucide="layers" class="w-4 h-4"></i> Componentes / Productos
+                        </h2>
+                        
+                        <!-- Selector de Modo -->
+                        <div class="flex items-center bg-gray-100 p-1 rounded-lg">
+                            <button id="btnModeDetalle" onclick="setMode('detalle')" class="px-3 py-1 text-xs font-medium rounded shadow-sm bg-white text-brand-tech">Detallado</button>
+                            <button id="btnModeFinal" onclick="setMode('final')" class="px-3 py-1 text-xs font-medium rounded text-gray-500 hover:text-gray-700">Precio Final</button>
+                        </div>
+                    </div>
+
+                    <!-- Input para modo resumido (Oculto por defecto) -->
+                    <div id="generalDescContainer" class="hidden mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                        <label class="block text-xs font-bold text-brand-corp mb-1">Descripción General del Equipo (Para modo Precio Final)</label>
+                        <input type="text" id="f_generalDesc" placeholder="Ej. Computadora de Escritorio Intel Core i7 - Alto Rendimiento" value="Computadora de Escritorio Alto Rendimiento" class="w-full border border-blue-200 rounded-md px-3 py-2 bg-white" oninput="updatePreview()">
+                    </div>
+
+                    <!-- Tabla de Inputs -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full mb-3">
+                            <thead>
+                                <tr class="text-left text-xs text-gray-500 border-b border-gray-200">
+                                    <th class="pb-2 w-16">Cant.</th>
+                                    <th class="pb-2">Descripción</th>
+                                    <th class="pb-2 w-24">P. Unit</th>
+                                    <th class="pb-2 w-8"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsBody">
+                                <!-- Filas generadas por JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <button onclick="addItemRow()" class="text-xs font-medium text-brand-tech flex items-center gap-1 hover:text-brand-corp transition-colors">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i> Agregar Componente
+                    </button>
+                </div>
+
+                <!-- Observaciones -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-xs font-bold text-brand-light uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <i data-lucide="clipboard-list" class="w-4 h-4"></i> Condiciones comerciales
+                    </h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Garantía</label>
+                            <input type="text" id="f_obsGarantia" value="12 meses contra defectos de fábrica" class="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm" oninput="updatePreview()">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Tiempo de Entrega</label>
+                            <input type="text" id="f_obsEntrega" value="24 a 48 horas tras confirmación" class="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm" oninput="updatePreview()">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Validez de Proforma</label>
+                            <input type="text" id="f_obsValidez" value="3 días útiles" class="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm" oninput="updatePreview()">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Otras Notas</label>
+                            <input type="text" id="f_obsNotas" placeholder="Opcional..." class="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm" oninput="updatePreview()">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- LADO DERECHO: Vista Previa -->
+        <section class="w-full lg:w-1/2 lg:flex-1 h-full overflow-y-auto bg-gray-200/50 p-4 lg:p-8 flex justify-center">
+            
+            <div id="preview-section" class="a4-preview flex flex-col transition-all duration-300">
+                
+                <!-- Encabezado Proforma -->
+                <div class="flex justify-between items-start mb-10 pb-6 border-b-2 border-brand-corp">
+                    <div class="flex items-center gap-4">
+                        <!-- Logo Dinámico -->
+                        <div id="p_logoContainer" class="w-20 h-20 bg-brand-corp rounded-lg flex items-center justify-center text-white overflow-hidden shrink-0">
+                            <!-- Logo SVG por defecto -->
+                            <svg id="p_defaultLogo" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
+                            <!-- Imagen subida -->
+                            <img id="p_uploadedLogo" src="" alt="Logo" class="hidden w-full h-full object-contain bg-white">
+                        </div>
+                        <div>
+                            <h1 id="p_bizName" class="text-2xl font-black text-brand-dark uppercase tracking-tight">KGB TECHNOLOGY</h1>
+                            <div class="text-gray-500 text-xs mt-1 space-y-0.5 font-medium">
+                                <p id="p_bizAddress">Av. Tecnológica 123, Centro Financiero</p>
+                                <p class="flex items-center gap-1"><i data-lucide="phone" class="w-3 h-3"></i> <span id="p_bizPhone">(01) 555-1234</span> &nbsp;|&nbsp; <i data-lucide="message-circle" class="w-3 h-3 text-green-500"></i> <span id="p_bizWsp">+51 999 888 777</span></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="bg-brand-corp text-white px-6 py-2 rounded-l-full -mr-20 shadow-md">
+                            <h2 class="text-3xl font-black tracking-widest uppercase">PROFORMA</h2>
+                        </div>
+                        <div class="mt-4 mr-2">
+                            <p class="text-sm font-bold text-gray-800">N° <span id="p_profNumber" class="text-brand-tech text-lg">PF-20260309-001</span></p>
+                            <p class="text-xs text-gray-500 mt-1 font-medium">Fecha: <span id="p_date" class="text-gray-800">09/03/2026</span></p>
+                            <p class="text-xs text-gray-500 font-medium">Hora: <span id="p_time" class="text-gray-800">11:43</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Datos Cliente -->
+                <div class="bg-gray-50 rounded-lg p-5 mb-8 border border-gray-100 flex justify-between items-center">
+                    <div class="space-y-2 flex-1">
+                        <p class="text-xs text-brand-light font-bold uppercase tracking-wider mb-1">Cliente</p>
+                        <h3 id="p_clientName" class="text-lg font-bold text-brand-dark uppercase">--------------------</h3>
+                        <p class="text-sm text-gray-600 font-medium flex items-center gap-2">
+                            <i data-lucide="smartphone" class="w-4 h-4 text-gray-400"></i> 
+                            <span id="p_clientPhone">--</span>
+                        </p>
+                    </div>
+                    <div class="flex-1 border-l border-gray-200 pl-6 h-full flex flex-col justify-center">
+                        <p class="text-xs text-gray-400 font-bold uppercase mb-1">Dirección</p>
+                        <p id="p_clientAddress" class="text-sm text-gray-700 font-medium">--</p>
+                    </div>
+                </div>
+
+                <!-- Tabla Principal -->
+                <div class="flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-brand-corp text-white text-xs uppercase tracking-wider">
+                                <th class="py-3 px-4 font-bold rounded-tl-lg w-16 text-center">Cant</th>
+                                <th class="py-3 px-4 font-bold">Descripción del Artículo</th>
+                                <th class="py-3 px-4 font-bold w-32 text-right p-col-price">P. Unit</th>
+                                <th class="py-3 px-4 font-bold w-32 text-right rounded-tr-lg">Importe</th>
+                            </tr>
+                        </thead>
+                        <tbody id="p_itemsBody" class="text-sm">
+                            <!-- Inyectado por JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Totales y Footer -->
+                <div class="mt-8 pt-6 border-t border-gray-200 flex justify-between items-end">
+                    
+                    <!-- Observaciones -->
+                    <div class="w-3/5 text-xs text-gray-600 bg-blue-50/50 p-4 rounded-lg border border-blue-50">
+                        <h4 class="font-bold text-brand-corp mb-2 uppercase tracking-wider flex items-center gap-1">
+                            <i data-lucide="info" class="w-3 h-3"></i> Información Adicional
+                        </h4>
+                        <ul class="space-y-1.5 font-medium">
+                            <li><strong class="text-gray-800">Garantía:</strong> <span id="p_obsGarantia"></span></li>
+                            <li><strong class="text-gray-800">Entrega:</strong> <span id="p_obsEntrega"></span></li>
+                            <li><strong class="text-gray-800">Validez:</strong> <span id="p_obsValidez"></span></li>
+                            <li id="p_obsNotasContainer" class="hidden"><strong class="text-gray-800">Notas:</strong> <span id="p_obsNotas"></span></li>
+                        </ul>
+                    </div>
+
+                    <!-- Caja Total -->
+                    <div class="w-1/3 space-y-2">
+                        <div class="flex justify-between items-center text-gray-500 font-medium px-4">
+                            <span>Subtotal</span>
+                            <span id="p_subtotal" class="font-mono">$0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-brand-corp text-white p-4 rounded-xl shadow-lg relative overflow-hidden">
+                            <!-- Decoración -->
+                            <div class="absolute -right-4 -top-4 w-16 h-16 bg-brand-light rounded-full opacity-20"></div>
+                            <span class="font-bold uppercase tracking-wider relative z-10">Total</span>
+                            <span id="p_total" class="text-xl font-black font-mono relative z-10">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mensaje de Agradecimiento -->
+                <div class="mt-10 text-center">
+                    <p class="text-lg font-bold text-brand-corp italic">¡Gracias por su compra y confianza!</p>
+                </div>
+
+                <!-- Firmas -->
+                <div class="mt-12 pt-8 flex justify-center gap-32 border-t border-dashed border-gray-300">
+                    <div class="text-center">
+                        <div class="w-48 border-t border-gray-800 mb-2 mx-auto"></div>
+                        <p class="text-xs font-bold text-brand-dark uppercase">Departamento de Ventas</p>
+                        <p id="p_bizNameSign" class="text-[10px] text-gray-500">KGB TECHNOLOGY</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-48 border-t border-gray-400 mb-2 mx-auto"></div>
+                        <p class="text-xs font-bold text-gray-600 uppercase">Aceptación del Cliente</p>
+                        <p class="text-[10px] text-gray-400">Firma / Sello</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // Inicializar iconos
+        lucide.createIcons();
+
+        // Estado de la aplicación
+        let items = [
+            { id: 1, qty: 1, desc: 'Procesador Intel Core i7 13700K', price: 450.00 },
+            { id: 2, qty: 1, desc: 'Placa Madre ASUS ROG Strix Z790', price: 320.00 },
+            { id: 3, qty: 2, desc: 'Memoria RAM Corsair Vengeance 16GB DDR5', price: 85.00 }
+        ];
+        
+        let viewMode = 'detalle'; // 'detalle' o 'final'
+
+        // Inicializar fecha, hora y número de proforma
+        function initDefaults() {
+            const now = new Date();
+            
+            // Fecha formato YYYY-MM-DD para input
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            document.getElementById('f_date').value = `${yyyy}-${mm}-${dd}`;
+            
+            // Número proforma automático (AñoMesDía-Num)
+            const randomNum = Math.floor(Math.random() * 900) + 100;
+            document.getElementById('f_profNumber').value = `${yyyy}${mm}${dd}-${randomNum}`;
+            
+            renderItems();
+            updatePreview();
+        }
+
+        // Cambiar modo de visualización
+        function setMode(mode) {
+            viewMode = mode;
+            
+            const btnDetalle = document.getElementById('btnModeDetalle');
+            const btnFinal = document.getElementById('btnModeFinal');
+            const descContainer = document.getElementById('generalDescContainer');
+
+            if (mode === 'detalle') {
+                btnDetalle.className = "px-3 py-1 text-xs font-medium rounded shadow-sm bg-white text-brand-tech";
+                btnFinal.className = "px-3 py-1 text-xs font-medium rounded text-gray-500 hover:text-gray-700 bg-transparent";
+                descContainer.classList.add('hidden');
+            } else {
+                btnFinal.className = "px-3 py-1 text-xs font-medium rounded shadow-sm bg-white text-brand-tech";
+                btnDetalle.className = "px-3 py-1 text-xs font-medium rounded text-gray-500 hover:text-gray-700 bg-transparent";
+                descContainer.classList.remove('hidden');
+            }
+
+            updatePreview();
+        }
+
+        // Manejar subida de Logo
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imgData = e.target.result;
+                    // Formulario
+                    document.getElementById('logoPlaceholder').classList.add('hidden');
+                    const imgForm = document.getElementById('logoPreviewImg');
+                    imgForm.src = imgData;
+                    imgForm.classList.remove('hidden');
+                    
+                    // Vista previa
+                    document.getElementById('p_defaultLogo').classList.add('hidden');
+                    const imgPrev = document.getElementById('p_uploadedLogo');
+                    imgPrev.src = imgData;
+                    imgPrev.classList.remove('hidden');
+                    document.getElementById('p_logoContainer').classList.remove('bg-brand-corp');
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Renderizar inputs de items en el formulario
+        function renderItems() {
+            const tbody = document.getElementById('itemsBody');
+            tbody.innerHTML = '';
+            
+            items.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="pr-2 pb-2">
+                        <input type="number" min="1" value="${item.qty}" onchange="updateItem(${item.id}, 'qty', this.value)" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-center">
+                    </td>
+                    <td class="pr-2 pb-2">
+                        <input type="text" placeholder="Descripción" value="${item.desc}" oninput="updateItem(${item.id}, 'desc', this.value)" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+                    </td>
+                    <td class="pr-2 pb-2">
+                        <div class="relative">
+                            <span class="absolute left-2 top-1.5 text-gray-400">$</span>
+                            <input type="number" min="0" step="0.01" value="${item.price}" oninput="updateItem(${item.id}, 'price', this.value)" class="w-full border border-gray-300 rounded pl-6 pr-2 py-1.5 text-sm">
+                        </div>
+                    </td>
+                    <td class="pb-2 text-right">
+                        <button onclick="removeItem(${item.id})" class="text-red-400 hover:text-red-600 p-1 bg-red-50 hover:bg-red-100 rounded transition-colors" title="Eliminar">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+            updatePreview();
+        }
+
+        function updateItem(id, field, value) {
+            const item = items.find(i => i.id === id);
+            if (item) {
+                item[field] = field === 'desc' ? value : parseFloat(value) || 0;
+                updatePreview();
+            }
+        }
+
+        function addItemRow() {
+            const newId = items.length > 0 ? Math.max(...items.map(i => i.id)) + 1 : 1;
+            items.push({ id: newId, qty: 1, desc: '', price: 0 });
+            renderItems();
+        }
+
+        function removeItem(id) {
+            items = items.filter(i => i.id !== id);
+            renderItems();
+        }
+
+        // Actualizar toda la vista previa
+        function updatePreview() {
+            // Textos simples
+            const syncText = (fromId, toId, defaultText = '') => {
+                const val = document.getElementById(fromId).value.trim();
+                document.getElementById(toId).innerText = val || defaultText;
+            };
+
+            // Sincronizar Negocio
+            syncText('f_bizName', 'p_bizName', 'KGB TECHNOLOGY');
+            syncText('f_bizName', 'p_bizNameSign', 'KGB TECHNOLOGY');
+            syncText('f_bizPhone', 'p_bizPhone', '-');
+            syncText('f_bizWsp', 'p_bizWsp', '-');
+            syncText('f_bizAddress', 'p_bizAddress', '-');
+
+            // Sincronizar Cliente
+            syncText('f_clientName', 'p_clientName', '--------------------');
+            syncText('f_clientPhone', 'p_clientPhone', 'Sin teléfono');
+            syncText('f_clientAddress', 'p_clientAddress', 'Sin dirección registrada');
+
+            // Sincronizar Meta
+            syncText('f_profNumber', 'p_profNumber', '00000');
+            
+            // Formatear fecha
+            const dateVal = document.getElementById('f_date').value;
+            if(dateVal) {
+                const [y, m, d] = dateVal.split('-');
+                document.getElementById('p_date').innerText = `${d}/${m}/${y}`;
+            }
+
+            // Sincronizar Observaciones
+            syncText('f_obsGarantia', 'p_obsGarantia', 'No especificada');
+            syncText('f_obsEntrega', 'p_obsEntrega', 'No especificada');
+            syncText('f_obsValidez', 'p_obsValidez', 'No especificada');
+            
+            const notas = document.getElementById('f_obsNotas').value.trim();
+            const notasContainer = document.getElementById('p_obsNotasContainer');
+            if(notas) {
+                document.getElementById('p_obsNotas').innerText = notas;
+                notasContainer.classList.remove('hidden');
+            } else {
+                notasContainer.classList.add('hidden');
+            }
+
+            // Actualizar Hora (Hora actual de generación)
+            const now = new Date();
+            document.getElementById('p_time').innerText = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+
+            // Renderizar Tabla Vista Previa
+            const pBody = document.getElementById('p_itemsBody');
+            pBody.innerHTML = '';
+            
+            let total = 0;
+            const priceHeader = document.querySelector('.p-col-price');
+
+            if (viewMode === 'detalle') {
+                priceHeader.style.display = ''; // Mostrar columna P.Unit
+                
+                items.forEach((item, index) => {
+                    const rowTotal = item.qty * item.price;
+                    total += rowTotal;
+                    
+                    const tr = document.createElement('tr');
+                    tr.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                    tr.innerHTML = `
+                        <td class="py-3 px-4 text-center font-medium border-l border-gray-100">${item.qty}</td>
+                        <td class="py-3 px-4 font-medium text-gray-800">${item.desc || '-'}</td>
+                        <td class="py-3 px-4 text-right text-gray-600 font-mono p-col-price">$${item.price.toFixed(2)}</td>
+                        <td class="py-3 px-4 text-right font-bold text-brand-dark font-mono border-r border-gray-100">$${rowTotal.toFixed(2)}</td>
+                    `;
+                    pBody.appendChild(tr);
+                });
+            } else {
+                // Modo Precio Final
+                priceHeader.style.display = 'none'; // Ocultar columna P.Unit
+                
+                items.forEach(item => {
+                    total += (item.qty * item.price);
+                });
+
+                const generalDesc = document.getElementById('f_generalDesc').value || 'Equipo Tecnológico según requerimientos';
+                
+                const tr = document.createElement('tr');
+                tr.className = 'bg-white border-b border-gray-100';
+                tr.innerHTML = `
+                    <td class="py-4 px-4 text-center font-bold text-gray-400">1</td>
+                    <td class="py-4 px-4 font-bold text-brand-tech text-base">${generalDesc}</td>
+                    <td class="py-4 px-4 text-right font-black text-brand-dark text-lg font-mono" colspan="2">$${total.toFixed(2)}</td>
+                `;
+                pBody.appendChild(tr);
+            }
+
+            // Actualizar Totales (Subtotal = Total para no complicar con impuestos a menos que se requiera)
+            document.getElementById('p_subtotal').innerText = `$${total.toFixed(2)}`;
+            document.getElementById('p_total').innerText = `$${total.toFixed(2)}`;
+        }
+
+        function clearForm() {
+            if(confirm('¿Estás seguro de limpiar todo el formulario?')) {
+                document.getElementById('f_clientName').value = '';
+                document.getElementById('f_clientPhone').value = '';
+                document.getElementById('f_clientAddress').value = '';
+                document.getElementById('f_obsNotas').value = '';
+                items = [{ id: 1, qty: 1, desc: '', price: 0 }];
+                renderItems();
+            }
+        }
+
+        function generatePDF() {
+            const element = document.getElementById('preview-section');
+            const opt = {
+                margin:       0,
+                filename:     `Proforma_${document.getElementById('f_profNumber').value}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Efecto visual de carga
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Generando...';
+            lucide.createIcons();
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                btn.innerHTML = originalText;
+                lucide.createIcons();
+            });
+        }
+
+        // Iniciar
+        window.onload = initDefaults;
+
+    </script>
+</body>
+</html>
