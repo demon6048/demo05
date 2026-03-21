@@ -17,13 +17,15 @@
         select.clean-select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
         .task-card { min-height: 60px; border-width: 1px; border-color: #374151; transition: all 0.2s ease; }
         .task-card:hover { border-color: #4b5563; background-color: #242933; }
+        .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; }
+        @keyframes pulse-red { 0% { transform: scale(1); } 50% { transform: scale(1.2); opacity: 0.8; } 100% { transform: scale(1); } }
     </style>
 </head>
 <body class="bg-[#0f1115] text-slate-200 font-sans h-screen flex flex-col overflow-hidden selection:bg-blue-500/30">
 
     <!-- HEADER DISEÑO COMPACTO -->
     <header class="bg-[#161b22] border-b border-gray-800 p-4 md:px-6 md:py-4 shadow-md z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div class="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8 w-full md:w-auto">
+        <div class="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8 w-full md:w-auto text-left">
             <div class="flex flex-col">
                 <h1 class="text-xl md:text-[22px] font-bold tracking-tight text-white flex items-center gap-2">
                     <div class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" id="sync-indicator"></div>
@@ -49,7 +51,6 @@
         </div>
         <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
             <div class="text-xl md:text-2xl font-mono font-bold tracking-widest text-white bg-[#0f1115] px-4 py-1.5 rounded-lg border border-gray-800 hidden sm:block" id="current-time">00:00:00</div>
-            <button onclick="toggleFullscreen()" class="p-2 md:p-2.5 bg-transparent hover:bg-gray-800 rounded-lg transition-colors border border-gray-700 text-slate-400 hidden md:block"><i class="fas fa-expand"></i></button>
             <button onclick="openModal()" class="flex-1 md:flex-none flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 md:py-2.5 rounded-md font-bold transition-all text-sm shadow-md">
                 <i class="fas fa-plus"></i><span>Nueva Tarea</span>
             </button>
@@ -65,19 +66,20 @@
         <div class="bg-[#161b22] border border-gray-700 rounded-xl w-full max-w-lg p-5 md:p-6 shadow-2xl transform transition-all my-auto">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg md:text-xl font-bold text-white">Añadir Nueva Tarea</h2>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-white transition-colors"><i class="fas fa-times text-xl"></i></button>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white p-1"><i class="fas fa-times text-xl"></i></button>
             </div>
 
-            <!-- ASISTENTE DE IA -->
-            <div class="mb-5 md:mb-6 p-4 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.15)] relative overflow-hidden">
+            <!-- ASISTENTE DE IA ACUMULATIVO -->
+            <div class="mb-5 md:mb-6 p-4 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl relative overflow-hidden shadow-inner">
                 <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 to-blue-500"></div>
-                <label class="block text-sm font-bold text-purple-400 mb-1 flex items-center gap-2">
-                    <i class="fas fa-magic"></i> Asistente Inteligente Acumulativo
+                <label class="block text-sm font-bold text-purple-400 mb-1 flex items-center gap-2 uppercase tracking-tighter">
+                    <i class="fas fa-magic"></i> Micrófono Inteligente Continuo
                 </label>
-                <p class="text-[10px] md:text-[11px] text-slate-400 mb-3 italic">El texto se sumará automáticamente. Pulsa para detener y rellenar.</p>
+                <p class="text-[10px] text-slate-400 mb-3 italic text-left">Hable libremente. El texto se acumula y el micro no se apaga solo.</p>
+                
                 <div class="flex gap-2">
-                    <div class="relative flex-1">
-                        <textarea id="ai-input" placeholder="Dicta o escribe tu orden..." rows="3" class="w-full bg-[#0f1115] border border-purple-500/50 rounded-lg pl-3 pr-12 py-3 text-white focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 text-sm resize-none custom-scrollbar transition-all"></textarea>
+                    <div class="relative flex-1 text-left">
+                        <textarea id="ai-input" placeholder="Dicta tu tarea aquí..." rows="3" class="w-full bg-[#0f1115] border border-purple-500/50 rounded-lg pl-3 pr-12 py-3 text-white focus:border-purple-400 outline-none text-sm resize-none custom-scrollbar transition-all"></textarea>
                         <button type="button" onclick="toggleSmartDictation()" class="absolute right-2 bottom-2 w-10 h-10 flex justify-center items-center bg-purple-600/20 hover:bg-purple-600/40 text-purple-400 rounded-md transition-all group" id="btn-smart-mic">
                             <i class="fas fa-microphone text-lg" id="mic-icon"></i>
                         </button>
@@ -88,35 +90,29 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-4 mb-4">
-                <div class="h-px bg-gray-800 flex-1"></div>
-                <span class="text-[10px] md:text-xs font-semibold text-slate-500 uppercase tracking-widest">Revisión Manual</span>
-                <div class="h-px bg-gray-800 flex-1"></div>
-            </div>
-
             <form id="new-task-form" class="space-y-3 md:space-y-4">
-                <div>
+                <div class="text-left">
                     <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Título de la tarea</label>
-                    <input type="text" id="task-title" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none text-sm">
+                    <input type="text" id="task-title" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 outline-none text-sm">
                 </div>
-                <div>
+                <div class="text-left">
                     <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Descripción</label>
-                    <textarea id="task-desc" rows="2" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none text-sm"></textarea>
+                    <textarea id="task-desc" rows="2" class="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 outline-none text-sm"></textarea>
                 </div>
-                <div class="grid grid-cols-2 gap-3 md:gap-4">
+                <div class="grid grid-cols-2 gap-4 text-left">
                     <div>
-                        <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1 uppercase">Categoría</label>
-                        <input type="text" id="task-cat" value="General" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none text-sm">
+                        <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1">Categoría</label>
+                        <input type="text" id="task-cat" value="General" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white outline-none text-sm">
                     </div>
                     <div>
-                        <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1 uppercase">Prioridad</label>
-                        <select id="task-prio" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none text-sm">
+                        <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1">Prioridad</label>
+                        <select id="task-prio" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white outline-none text-sm">
                             <option value="Alta">Alta</option>
                             <option value="Baja" selected>Baja</option>
                         </select>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-3 md:gap-4">
+                <div class="grid grid-cols-2 gap-4 text-left">
                     <div>
                         <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1 uppercase">Fecha</label>
                         <input type="date" id="task-date" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white text-sm" style="color-scheme: dark;">
@@ -126,18 +122,18 @@
                         <input type="time" id="task-time" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white text-sm">
                     </div>
                 </div>
-                <div class="flex justify-end gap-3 mt-5 md:mt-6 pt-4 border-t border-gray-800">
+                <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
                     <button type="button" onclick="closeModal()" class="px-3 py-2 text-xs md:text-sm font-semibold text-slate-300 hover:text-white transition-colors">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs md:text-sm font-bold rounded-lg shadow-lg transition-all" id="btn-save">Guardar Tarea</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs md:text-sm font-bold rounded-lg shadow-lg">Guardar Tarea</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        const GOOGLE_API_URL = ""; 
-        const apiKey = "AIzaSyDd5JHdIdgX3Md9hoWJxpimJagxY8icA9Y"; // El sistema inyectará la clave aquí automáticamente
-
+        // CONFIGURACIÓN: En este entorno "" funciona automáticamente.
+        // Para GitHub, reemplaza "" por "AIzaSyDd5JHdIdgX3Md9hoWJxpimJagxY8icA9Y"
+        const apiKey = ""; 
         let tasks = [];
 
         const COLUMNS = [
@@ -155,11 +151,6 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-            else if (document.exitFullscreen) document.exitFullscreen();
-        }
-
         function renderBoard() {
             const board = document.getElementById('kanban-board');
             if(!board) return;
@@ -170,20 +161,18 @@
 
             COLUMNS.forEach(col => {
                 const colTasks = tasks.filter(t => t.status === col.id);
-                let colHTML = `<div class="w-full flex flex-col bg-[#161b22] border border-gray-800 rounded-xl overflow-hidden shadow-lg mb-4">
-                    <div class="px-4 py-3 border-b border-gray-800 flex justify-between items-center ${col.bg}">
-                        <h2 class="font-bold text-[11px] tracking-widest text-slate-200 uppercase">${col.title}</h2>
+                let colHTML = `<div class="w-full flex flex-col bg-[#161b22] border border-gray-800 rounded-xl overflow-hidden shadow-lg mb-4 text-left">
+                    <div class="px-4 py-2.5 border-b border-gray-800 flex justify-between items-center ${col.bg}">
+                        <h2 class="font-bold text-[10px] md:text-[11px] tracking-widest text-slate-200 uppercase">${col.title}</h2>
                         <span class="bg-[#0f1115] text-slate-400 text-[10px] px-2 py-0.5 rounded font-bold border border-gray-800">${colTasks.length}</span>
                     </div>
                     <div class="p-2 md:p-3 flex flex-col gap-2 min-h-[50px] bg-[#161b22]">`;
-                
-                if (colTasks.length === 0) colHTML += `<div class="h-10 border border-dashed border-gray-800/30 rounded-lg flex items-center justify-center text-[10px] text-slate-600 uppercase tracking-tighter">Vacío</div>`;
+                if (colTasks.length === 0) colHTML += `<div class="h-8 flex items-center justify-center text-[10px] text-slate-600 uppercase tracking-tighter">Vacio</div>`;
 
                 colTasks.forEach(task => {
                     const statusColor = task.progress === 100 ? 'bg-green-500' : 'bg-blue-500';
-                    const prioColor = task.priority === 'Alta' ? 'bg-red-500' : 'bg-blue-500';
                     colHTML += `<div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-[#1c212b] border border-gray-800 rounded-lg p-3 relative task-card">
-                        <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg ${prioColor}"></div>
+                        <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg ${task.priority === 'Alta' ? 'bg-red-500' : 'bg-blue-500'}"></div>
                         <div class="flex-1 pl-2 w-full md:w-auto min-w-0">
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="text-[9px] font-bold uppercase text-slate-300 bg-[#0f1115] px-1.5 py-0.5 rounded border border-gray-800/50">${task.category}</span>
@@ -193,15 +182,15 @@
                             <p class="text-[10px] text-slate-400 truncate">${task.desc || '...'}</p>
                         </div>
                         <div class="bg-[#0f1115] p-2 rounded-md flex flex-row md:flex-col items-center justify-center gap-3 md:gap-0.5 border border-gray-800 min-w-[120px] shrink-0 text-center">
-                            <div class="text-[10px] text-slate-400"><i class="far fa-calendar-alt"></i> ${task.date}</div>
-                            <div class="text-[10px] font-mono font-bold text-blue-400"><i class="far fa-clock"></i> ${task.time}</div>
+                            <div class="text-[10px] text-slate-400 font-semibold">${task.date}</div>
+                            <div class="text-[10px] font-mono font-bold text-blue-400">${task.time}</div>
                         </div>
                         <div class="w-full md:w-[320px] flex flex-col shrink-0 self-center">
                             <div class="flex justify-between items-end mb-1">
                                 <span class="text-[9px] font-bold text-slate-200 uppercase tracking-widest">Avance</span>
                                 <span class="text-[10px] font-bold font-mono text-blue-400">${task.progress}%</span>
                             </div>
-                            <div class="w-full h-1 bg-[#0f1115] rounded-full overflow-hidden mb-2">
+                            <div class="w-full h-1 bg-[#0f1115] rounded-full overflow-hidden mb-2 shadow-inner">
                                 <div class="h-full transition-all duration-500 ${statusColor}" style="width: ${task.progress}%"></div>
                             </div>
                             <div class="flex gap-1">
@@ -226,7 +215,7 @@
         }
 
         // ==========================================
-        // MICRÓFONO 100% ACUMULATIVO (FIXED)
+        // MICRÓFONO ETERNO Y ACUMULATIVO
         // ==========================================
         let smartRecognition = null;
         let isSmartRecording = false;
@@ -234,49 +223,46 @@
 
         function toggleSmartDictation() {
             const inputEl = document.getElementById('ai-input');
-            const iconEl = document.getElementById('btn-smart-mic').querySelector('i');
+            const iconEl = document.getElementById('mic-icon');
             const statusEl = document.getElementById('ai-status');
 
             if (isSmartRecording) {
                 isSmartRecording = false;
                 if (smartRecognition) smartRecognition.stop();
-                iconEl.className = "fas fa-microphone text-lg";
-                iconEl.parentElement.classList.remove('text-red-500', 'animate-pulse');
-                if(inputEl.value.trim().length > 3) processWithAI(inputEl.value);
+                iconEl.className = "fas fa-microphone";
+                iconEl.classList.remove('mic-active');
+                if(inputEl.value.trim().length > 3) processWithIA(inputEl.value);
                 return;
             }
 
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) { alert("Tu navegador no soporta voz."); return; }
+            if (!SpeechRecognition) { statusEl.innerText = 'Navegador no soporta voz.'; statusEl.classList.remove('hidden'); return; }
             
             smartRecognition = new SpeechRecognition();
             smartRecognition.lang = 'es-ES';
             smartRecognition.continuous = true;
             smartRecognition.interimResults = true;
             
-            // LA CLAVE: Bloqueamos lo que ya hay para que no se borre
             anchoredText = inputEl.value;
 
             smartRecognition.onstart = () => {
                 isSmartRecording = true;
-                iconEl.className = "fas fa-stop-circle text-lg text-white";
-                iconEl.parentElement.classList.add('text-red-500', 'animate-pulse');
+                iconEl.className = "fas fa-stop";
+                iconEl.classList.add('mic-active');
                 statusEl.classList.remove('hidden');
                 document.getElementById('status-text').innerText = "Escuchando... No se borrará lo anterior.";
             };
 
             smartRecognition.onresult = (event) => {
-                let currentSessionText = "";
+                let sessionText = "";
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    currentSessionText += event.results[i][0].transcript;
+                    sessionText += event.results[i][0].transcript;
                 }
-                // UNIÓN: Ancla + Lo nuevo
-                inputEl.value = (anchoredText.trim() ? anchoredText.trim() + " " : "") + currentSessionText;
+                inputEl.value = (anchoredText.trim() ? anchoredText.trim() + " " : "") + sessionText;
                 inputEl.scrollTop = inputEl.scrollHeight;
             };
 
             smartRecognition.onend = () => {
-                // Si se corta por silencio, actualizamos el ancla y seguimos si el usuario no pulsó STOP
                 if (isSmartRecording) {
                     anchoredText = inputEl.value; 
                     try { smartRecognition.start(); } catch(e){} 
@@ -286,65 +272,63 @@
         }
 
         // ==========================================
-        // RELLENADO AUTOMÁTICO IA (LOGICA REFORZADA)
+        // RELLENADO CON IA (NUEVO MOTOR CON REINTENTOS)
         // ==========================================
-        async function processWithAI(text) {
+        async function processWithIA(text) {
             const statusEl = document.getElementById('ai-status');
             const statusText = document.getElementById('status-text');
             statusEl.classList.remove('hidden');
             statusText.innerText = "La IA está trabajando...";
 
             const today = new Date();
-            const todayStr = today.toISOString().split('T')[0];
-            
-            const prompt = `Actúa como un extractor JSON profesional. Hoy es ${today.toDateString()}. 
-            Analiza el texto y responde ÚNICAMENTE un objeto JSON válido. 
-            Esquema: {"title": "resumen", "desc": "detalles", "category": "tipo", "priority": "Alta"|"Baja", "date": "YYYY-MM-DD", "time": "HH:MM"}.
-            Si dice "mañana", calcula la fecha real basándote en hoy. Si no dice hora usa "10:00".
-            Texto: "${text}"`;
+            const currentDateStr = today.toISOString().split('T')[0];
+            const prompt = `Extrae info de tarea del siguiente texto. Hoy es ${today.toDateString()}. Responde ÚNICAMENTE un objeto JSON válido con estas llaves: 
+            {"title": "resumen corto", "desc": "detalles extra", "category": "tipo", "priority": "Alta"|"Baja", "date": "YYYY-MM-DD", "time": "HH:MM"}.
+            Si dice "mañana", calcula la fecha real basándote en hoy. Si no dice hora usa "10:00". Texto: "${text}"`;
 
-            // Función de llamada con reintentos para evitar el error de "Falla de API"
-            const callAPI = async (retries = 5, delay = 1000) => {
-                for (let i = 0; i < retries; i++) {
-                    try {
-                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ 
-                                contents: [{ parts: [{ text: prompt }] }],
-                                generationConfig: { responseMimeType: "application/json" } 
-                            })
-                        });
+            // Lógica de reintentos exponenciales
+            const callWithRetry = async (retries = 5, delay = 1000) => {
+                try {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: { responseMimeType: "application/json" }
+                        })
+                    });
 
-                        if (!response.ok) throw new Error("API Offline");
+                    if (!response.ok) throw new Error("Status " + response.status);
+                    
+                    const result = await response.json();
+                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                    const data = JSON.parse(jsonText.replace(/```json/gi, '').replace(/```/g, '').trim());
 
-                        const result = await response.json();
-                        const data = JSON.parse(result.candidates[0].content.parts[0].text);
+                    document.getElementById('task-title').value = data.title || "";
+                    document.getElementById('task-desc').value = data.desc || "";
+                    document.getElementById('task-cat').value = data.category || "General";
+                    document.getElementById('task-date').value = data.date || currentDateStr;
+                    document.getElementById('task-time').value = data.time || "10:00";
+                    document.getElementById('task-prio').value = (data.priority === "Alta") ? "Alta" : "Baja";
 
-                        // LLENADO FORZADO
-                        document.getElementById('task-title').value = data.title || "";
-                        document.getElementById('task-desc').value = data.desc || "";
-                        document.getElementById('task-cat').value = data.category || "General";
-                        document.getElementById('task-date').value = data.date || todayStr;
-                        document.getElementById('task-time').value = data.time || "10:00";
-                        document.getElementById('task-prio').value = (data.priority === "Alta") ? "Alta" : "Baja";
-
-                        statusText.innerText = "¡Formulario completado!";
-                        setTimeout(() => statusEl.classList.add('hidden'), 3000);
-                        return;
-
-                    } catch (e) {
-                        if (i === retries - 1) throw e;
-                        await new Promise(r => setTimeout(r, delay * Math.pow(2, i)));
+                    statusText.innerText = "¡Campos rellenados!";
+                    setTimeout(() => statusEl.classList.add('hidden'), 3000);
+                } catch (e) {
+                    if (retries > 0) {
+                        statusText.innerText = `IA ocupada, reintentando (${retries})...`;
+                        await new Promise(r => setTimeout(r, delay));
+                        return callWithRetry(retries - 1, delay * 2);
                     }
+                    throw e;
                 }
             };
 
             try {
-                await callAPI();
+                await callWithRetry();
             } catch (e) {
                 console.error(e);
-                statusText.innerText = "IA Ocupada. Intenta de nuevo.";
+                statusText.innerText = "Falla temporal. Reintente pulsando el micro.";
             }
         }
 
