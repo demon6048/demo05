@@ -5,110 +5,145 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Centro de Control Diario</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        @media (min-width: 1024px) { .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; } }
         .custom-scrollbar::-webkit-scrollbar-track { background: #0f1115; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
         .dragging { opacity: 0.5; }
-        
-        /* Ocultar scrollbar en el contenedor principal pero permitir scroll */
         .board-container { scrollbar-width: thin; scrollbar-color: #334155 #0f1115; }
+        /* Ocultar flecha de select nativo para integrarlo perfecto */
+        select.clean-select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
     </style>
 </head>
 <body class="bg-[#0f1115] text-slate-200 font-sans h-screen flex flex-col overflow-hidden selection:bg-blue-500/30">
 
-    <!-- HEADER -->
-    <header class="bg-[#161b22] border-b border-gray-800 p-4 md:p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-md z-10">
-        <div class="flex items-center gap-6">
+    <!-- HEADER IDÉNTICO AL DISEÑO -->
+    <header class="bg-[#161b22] border-b border-gray-800 p-4 md:px-6 md:py-4 shadow-md z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        
+        <div class="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8 w-full md:w-auto">
             <div class="flex flex-col">
-                <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-                    <div class="w-3 h-3 rounded-full bg-blue-500 animate-pulse" id="sync-indicator"></div>
+                <h1 class="text-xl md:text-[22px] font-bold tracking-tight text-white flex items-center gap-2">
+                    <div class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" id="sync-indicator"></div>
                     Centro de Control Diario
                 </h1>
-                <p class="text-slate-400 text-sm capitalize" id="current-date"></p>
+                <p class="text-slate-400 text-[11px] md:text-xs capitalize mt-0.5" id="current-date"></p>
             </div>
-            <div class="hidden lg:flex gap-4 ml-8 border-l border-gray-700 pl-8">
+
+            <div class="hidden md:block w-px h-10 bg-gray-700"></div>
+
+            <div class="flex gap-6 md:gap-8 w-full md:w-auto justify-around md:justify-start border-t md:border-t-0 border-gray-800 pt-3 md:pt-0">
                 <div class="flex flex-col items-center">
-                    <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Pendientes</span>
-                    <span class="text-xl font-bold text-red-400" id="stat-pending">0</span>
+                    <span class="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Pendientes</span>
+                    <span class="text-lg md:text-xl font-bold text-red-500 leading-none" id="stat-pending">0</span>
                 </div>
                 <div class="flex flex-col items-center">
-                    <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">En Proceso</span>
-                    <span class="text-xl font-bold text-blue-400" id="stat-progress">0</span>
+                    <span class="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">En Proceso</span>
+                    <span class="text-lg md:text-xl font-bold text-blue-500 leading-none" id="stat-progress">0</span>
                 </div>
                 <div class="flex flex-col items-center">
-                    <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Completadas</span>
-                    <span class="text-xl font-bold text-green-400" id="stat-completed">0</span>
+                    <span class="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Completadas</span>
+                    <span class="text-lg md:text-xl font-bold text-green-500 leading-none" id="stat-completed">0</span>
                 </div>
             </div>
         </div>
 
-        <div class="flex items-center gap-4">
-            <div class="text-3xl font-mono font-bold tracking-widest text-white bg-black/30 px-4 py-2 rounded-lg border border-gray-800" id="current-time">
+        <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+            <div class="text-xl md:text-2xl font-mono font-bold tracking-widest text-white bg-[#0f1115] px-4 py-1.5 rounded-lg border border-gray-800 hidden sm:block" id="current-time">
                 00:00:00
             </div>
             
-            <button onclick="toggleFullscreen()" class="p-2.5 bg-[#1f242d] hover:bg-gray-700 rounded-lg transition-colors border border-gray-700 text-slate-300">
+            <button onclick="toggleFullscreen()" class="p-2 md:p-2.5 bg-transparent hover:bg-gray-800 rounded-lg transition-colors border border-gray-700 text-slate-400 hidden md:block">
                 <i class="fas fa-expand"></i>
             </button>
             
-            <button onclick="openModal()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-lg shadow-blue-900/20 active:scale-95">
+            <button onclick="openModal()" class="flex-1 md:flex-none flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 md:py-2.5 rounded-md font-bold transition-all text-sm shadow-md">
                 <i class="fas fa-plus"></i>
-                <span class="hidden sm:inline">Nueva Tarea</span>
+                <span>Nueva Tarea</span>
             </button>
         </div>
     </header>
 
-    <!-- BOARD MAIN AREA (Cambiado a vista de lista vertical) -->
-    <main class="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 custom-scrollbar board-container">
-        <div class="flex flex-col gap-6 w-full max-w-7xl mx-auto pb-10" id="kanban-board">
-            <!-- Las secciones se generarán por JS -->
+    <!-- BOARD MAIN AREA -->
+    <main class="flex-1 overflow-x-hidden overflow-y-auto p-3 md:p-6 custom-scrollbar board-container">
+        <div class="flex flex-col gap-4 md:gap-5 w-full max-w-[1300px] mx-auto pb-10" id="kanban-board">
+            <!-- Generado por JS -->
         </div>
     </main>
 
-    <!-- MODAL NUEVA TAREA -->
-    <div id="task-modal" class="fixed inset-0 bg-black/80 hidden z-50 flex justify-center items-center backdrop-blur-sm">
-        <div class="bg-[#161b22] border border-gray-700 rounded-xl w-full max-w-md p-6 shadow-2xl transform transition-all">
-            <h2 class="text-xl font-bold text-white mb-4">Añadir Nueva Tarea</h2>
-            <form id="new-task-form" class="space-y-4">
+    <!-- MODAL NUEVA TAREA (Oculto por defecto) -->
+    <div id="task-modal" class="fixed inset-0 bg-black/80 hidden z-50 flex justify-center items-center backdrop-blur-sm overflow-y-auto p-4">
+        <div class="bg-[#161b22] border border-gray-700 rounded-xl w-full max-w-lg p-5 md:p-6 shadow-2xl transform transition-all my-auto">
+            
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg md:text-xl font-bold text-white">Añadir Nueva Tarea</h2>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white transition-colors"><i class="fas fa-times text-xl"></i></button>
+            </div>
+
+            <!-- ASISTENTE DE IA -->
+            <div class="mb-5 md:mb-6 p-4 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.15)] relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 to-blue-500"></div>
+                <label class="block text-sm font-bold text-purple-400 mb-1 flex items-center gap-2">
+                    <i class="fas fa-magic"></i> Asistente Inteligente
+                </label>
+                <p class="text-[10px] md:text-[11px] text-slate-400 mb-3">Habla o escribe (Ej: "Mañana a las 3 pm instalar cámaras con prioridad alta")</p>
+                
+                <div class="flex gap-2">
+                    <div class="relative flex-1">
+                        <textarea id="ai-input" onkeydown="handleAiInputKeypress(event)" placeholder="Dicta tu orden..." rows="3" class="w-full bg-[#0f1115] border border-purple-500/50 rounded-lg pl-3 pr-12 py-3 text-white focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 text-sm resize-none custom-scrollbar"></textarea>
+                        <button type="button" onclick="toggleSmartDictation()" class="absolute right-2 bottom-2 w-8 h-8 flex justify-center items-center bg-purple-600/20 hover:bg-purple-600/40 text-purple-400 rounded-md transition-all group" id="btn-smart-mic" title="Iniciar/Detener dictado">
+                            <i class="fas fa-microphone group-hover:scale-110 transition-transform"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="ai-status" class="text-xs text-purple-400 mt-2 font-mono font-bold hidden flex items-center gap-2">
+                    <i class="fas fa-circle-notch fa-spin"></i> Procesando...
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4 mb-4">
+                <div class="h-px bg-gray-800 flex-1"></div>
+                <span class="text-[10px] md:text-xs font-semibold text-slate-500 uppercase tracking-widest">Revisión Manual</span>
+                <div class="h-px bg-gray-800 flex-1"></div>
+            </div>
+
+            <form id="new-task-form" class="space-y-3 md:space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">Título de la tarea</label>
-                    <input type="text" id="task-title" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none">
+                    <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1">Título de la tarea</label>
+                    <input type="text" id="task-title" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">Descripción corta</label>
-                    <textarea id="task-desc" rows="2" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"></textarea>
+                    <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1">Descripción corta</label>
+                    <textarea id="task-desc" rows="2" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none text-sm"></textarea>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-3 md:gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Categoría</label>
-                        <input type="text" id="task-cat" value="General" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none">
+                        <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1">Categoría</label>
+                        <input type="text" id="task-cat" value="General" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Prioridad</label>
-                        <select id="task-prio" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none">
+                        <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1">Prioridad</label>
+                        <select id="task-prio" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none text-sm">
                             <option value="Alta">Alta</option>
-                            <option value="Media" selected>Media</option>
-                            <option value="Baja">Baja</option>
+                            <option value="Baja" selected>Baja</option>
                         </select>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-3 md:gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Fecha</label>
-                        <input type="date" id="task-date" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none" style="color-scheme: dark;">
+                        <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1">Fecha</label>
+                        <input type="date" id="task-date" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none text-sm" style="color-scheme: dark;">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Hora</label>
-                        <input type="time" id="task-time" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none" style="color-scheme: dark;">
+                        <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1">Hora</label>
+                        <input type="time" id="task-time" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none text-sm" style="color-scheme: dark;">
                     </div>
                 </div>
-                <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white transition-colors">Cancelar</button>
-                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-lg shadow-lg transition-all" id="btn-save">
+                <div class="flex justify-end gap-3 mt-5 md:mt-6 pt-4 border-t border-gray-800">
+                    <button type="button" onclick="closeModal()" class="px-3 py-2 text-xs md:text-sm font-semibold text-slate-300 hover:text-white transition-colors">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs md:text-sm font-bold rounded-lg shadow-lg transition-all" id="btn-save">
                         Guardar Tarea
                     </button>
                 </div>
@@ -118,51 +153,93 @@
 
     <script>
         // ==========================================
-        // CONFIGURACIÓN DE GOOGLE SHEETS API
+        // VARIABLES GLOBALES Y CONFIGURACIÓN
         // ==========================================
-        // PEGA AQUÍ LA URL DE TU WEB APP DE APPS SCRIPT
         const GOOGLE_API_URL = ""; 
-        
-        // Datos locales iniciales (Fallback si no hay API)
+        const apiKey = ""; 
+
         let tasks = [
             { id: 't1', title: 'Revisión de Servidores', desc: 'Chequeo de logs', category: 'Mantenimiento', priority: 'Alta', status: 'Prioridad Alta', progress: 0, date: '2026-03-21', time: '10:00' },
-            { id: 't2', title: 'Reunión Cliente X', desc: 'Presentar cotización', category: 'Ventas', priority: 'Media', status: 'Pendientes', progress: 0, date: '2026-03-22', time: '11:00' }
+            { id: 't2', title: 'Reunión Cliente X', desc: 'Presentar cotización', category: 'Ventas', priority: 'Baja', status: 'Pendientes', progress: 0, date: '2026-03-23', time: '11:00' }
         ];
 
+        // Colores y fondos idénticos a la imagen original
         const COLUMNS = [
-            { id: 'Prioridad Alta', title: '🔥 PRIORIDAD ALTA', color: 'border-red-500', bg: 'bg-red-500/10' },
-            { id: 'En Proceso', title: '⚙️ EN PROCESO', color: 'border-blue-500', bg: 'bg-blue-500/10' },
-            { id: 'Pendientes', title: '📋 PENDIENTES / OTROS', color: 'border-gray-500', bg: 'bg-gray-500/10' },
-            { id: 'Completadas', title: '✅ COMPLETADAS', color: 'border-green-500', bg: 'bg-green-500/10' }
+            { id: 'Prioridad Alta', title: '🔥 PRIORIDAD ALTA', color: 'border-red-500', bg: 'bg-[#1f1616]', bar: 'bg-red-500' },
+            { id: 'En Proceso', title: '⚙️ EN PROCESO', color: 'border-blue-500', bg: 'bg-[#161c22]', bar: 'bg-blue-500' },
+            { id: 'Pendientes', title: '📋 PENDIENTES / OTROS', color: 'border-gray-500', bg: 'bg-[#1a1a1a]', bar: 'bg-gray-500' },
+            { id: 'Completadas', title: '✅ COMPLETADAS', color: 'border-green-500', bg: 'bg-[#161f18]', bar: 'bg-green-500' }
         ];
 
         // ==========================================
-        // LOGICA DE INTERFAZ Y RELOJ
+        // LÓGICA DE INTERFAZ Y RELOJ
         // ==========================================
         function updateClock() {
             const now = new Date();
             document.getElementById('current-time').innerText = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            document.getElementById('current-date').innerText = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('current-date').innerText = now.toLocaleDateString('es-ES', options);
         }
         setInterval(updateClock, 1000);
         updateClock();
 
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
+                document.documentElement.requestFullscreen().catch(e => console.log(e));
             } else {
                 if (document.exitFullscreen) document.exitFullscreen();
             }
         }
 
         // ==========================================
-        // RENDERIZADO DEL KANBAN
+        // LÓGICA DE TIEMPO Y CONTEO REGRESIVO
+        // ==========================================
+        function calculateTimeLeft(dateStr, timeStr) {
+            if(!dateStr || !timeStr) return { text: "", color: "hidden" };
+            const target = new Date(`${dateStr}T${timeStr}`);
+            const now = new Date();
+            const diffMs = target - now;
+
+            if (diffMs < 0) {
+                const diffAbs = Math.abs(diffMs);
+                const hrs = Math.floor(diffAbs / (1000 * 60 * 60));
+                const days = Math.floor(hrs / 24);
+                if (days > 0) return { text: `Hace ${days}d`, color: "text-red-500" };
+                return { text: `Hace ${hrs}h`, color: "text-red-500 animate-pulse" };
+            }
+
+            const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+            if (days > 0) return { text: `Faltan ${days}d ${hours}h`, color: "text-slate-400" };
+            if (hours > 0) return { text: `Faltan ${hours}h`, color: "text-yellow-500" };
+            return { text: `Faltan ${mins}m`, color: "text-orange-500 animate-pulse" };
+        }
+
+        function updateTimers() {
+            tasks.forEach(task => {
+                const el = document.getElementById(`timer-${task.id}`);
+                if(el) {
+                    if(task.status === 'Completadas') {
+                        el.innerHTML = '<span class="text-slate-500">Fin</span>';
+                        return;
+                    }
+                    const timeLeft = calculateTimeLeft(task.date, task.time);
+                    el.innerHTML = `<span class="${timeLeft.color}">${timeLeft.text}</span>`;
+                }
+            });
+        }
+        setInterval(updateTimers, 60000);
+
+        // ==========================================
+        // RENDERIZADO DEL KANBAN (COMPACTO Y HORIZONTAL)
         // ==========================================
         function renderBoard() {
             const board = document.getElementById('kanban-board');
+            if(!board) return;
             board.innerHTML = '';
 
-            // Actualizar Stats
             document.getElementById('stat-pending').innerText = tasks.filter(t => t.status === 'Pendientes' || t.status === 'Prioridad Alta').length;
             document.getElementById('stat-progress').innerText = tasks.filter(t => t.status === 'En Proceso').length;
             document.getElementById('stat-completed').innerText = tasks.filter(t => t.status === 'Completadas').length;
@@ -170,60 +247,82 @@
             COLUMNS.forEach(col => {
                 const colTasks = tasks.filter(t => t.status === col.id);
                 
-                // Contenedor de categoría que ocupa todo el ancho
                 let colHTML = `
-                <div class="w-full flex flex-col bg-[#161b22] rounded-xl border border-gray-800/60 shadow-xl"
+                <div class="w-full flex flex-col bg-[#161b22] rounded-xl border border-gray-800 overflow-hidden"
                      ondragover="handleDragOver(event)" ondrop="handleDrop(event, '${col.id}')">
-                    <div class="p-3 md:p-4 border-b border-gray-800 flex justify-between items-center ${col.bg} rounded-t-xl">
-                        <h2 class="font-bold text-sm tracking-widest text-slate-200 uppercase">${col.title}</h2>
-                        <span class="bg-[#0f1115] text-slate-400 text-xs px-2.5 py-1 rounded-full font-bold">${colTasks.length}</span>
+                    
+                    <!-- Encabezado de Sección de la imagen -->
+                    <div class="px-4 py-3 border-b border-gray-800/80 flex justify-between items-center ${col.bg}">
+                        <h2 class="font-bold text-[11px] md:text-xs tracking-widest text-slate-200 uppercase flex items-center gap-2">
+                            ${col.title}
+                        </h2>
+                        <span class="bg-[#0f1115] text-slate-400 text-[10px] md:text-xs px-2.5 py-0.5 rounded-full font-bold border border-gray-800">${colTasks.length}</span>
                     </div>
-                    <div class="p-3 md:p-4 flex flex-col gap-3 min-h-[100px]">
+                    
+                    <!-- Contenedor con Padding Reducido -->
+                    <div class="p-2 md:p-3 flex flex-col gap-2 md:gap-3 min-h-[70px] bg-[#161b22]">
                 `;
 
                 if (colTasks.length === 0) {
-                    colHTML += `<div class="flex justify-center items-center h-16 border-2 border-dashed border-gray-800 rounded-xl text-slate-600 text-sm">Arrastra tareas aquí o añade una nueva</div>`;
+                    colHTML += `<div class="flex justify-center items-center h-12 border border-dashed border-gray-700/50 rounded-lg text-slate-500 text-xs font-medium">Arrastra tareas aquí o añade una nueva</div>`;
                 }
 
                 colTasks.forEach(task => {
-                    let prioColor = task.priority === 'Alta' ? 'bg-red-500' : task.priority === 'Media' ? 'bg-yellow-500' : 'bg-blue-500';
-                    let barColor = task.progress === 100 ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : task.progress > 50 ? 'bg-blue-500' : 'bg-yellow-500';
-                    let iconPrio = task.priority === 'Alta' ? 'fa-fire text-red-400' : task.priority === 'Media' ? 'fa-bolt text-yellow-400' : 'fa-check text-blue-400';
+                    let prioColor = task.priority === 'Alta' ? 'bg-red-500' : 'bg-blue-500';
+                    let barColor = task.progress === 100 ? 'bg-green-500' : 'bg-blue-500';
                     
-                    // Diseño de lista horizontal ancha para cada tarea
+                    // AQUI ESTÁ EL SECRETO: 
+                    // md:flex-row + md:items-center obliga a que Izquierda, Centro y Derecha estén en la misma línea (regla horizontal).
                     colHTML += `
                     <div draggable="true" ondragstart="handleDragStart(event, '${task.id}')" ondragend="handleDragEnd(event)" 
-                         class="flex flex-col md:flex-row items-start md:items-center gap-4 bg-[#1c212b] border border-gray-700/50 rounded-xl p-3 md:p-4 shadow-lg hover:border-gray-500 cursor-grab relative overflow-hidden transition-all">
-                        <div class="absolute left-0 top-0 bottom-0 w-1 ${prioColor}"></div>
+                         class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 bg-[#1c212b] border border-gray-800 rounded-lg p-3 hover:border-gray-700 transition-colors cursor-grab relative shadow-sm">
                         
-                        <div class="flex-1 pl-2 w-full md:w-auto">
-                            <div class="flex items-center gap-3 mb-1.5">
-                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-[#0f1115] px-2 py-0.5 rounded border border-gray-800">${task.category}</span>
-                                <span class="text-[10px] font-bold uppercase text-slate-400"><i class="fas ${iconPrio}"></i> ${task.priority}</span>
+                        <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg ${prioColor}"></div>
+                        
+                        <!-- 1. COLUMNA IZQUIERDA: Título, Descripción y Etiquetas -->
+                        <div class="flex-1 pl-2 w-full md:w-auto min-w-0">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                <span class="text-[9px] font-bold uppercase tracking-wider text-slate-300 bg-[#0f1115] px-2 py-0.5 rounded border border-gray-800/50">
+                                    ${task.category}
+                                </span>
+                                
+                                <select onchange="updatePriority('${task.id}', this.value)" class="clean-select bg-transparent border-none text-[9px] font-bold uppercase cursor-pointer transition-colors focus:outline-none ${task.priority === 'Alta' ? 'text-red-400' : 'text-blue-400'}">
+                                    <option value="Alta" class="bg-[#1c212b] text-red-400" ${task.priority === 'Alta' ? 'selected' : ''}>🔥 ALTA</option>
+                                    <option value="Baja" class="bg-[#1c212b] text-blue-400" ${task.priority === 'Baja' ? 'selected' : ''}>⚡ BAJA</option>
+                                </select>
+
+                                <select onchange="updateStatusManual('${task.id}', this.value)" class="md:hidden ml-auto clean-select bg-gray-900 border border-gray-800 rounded px-2 py-0.5 text-[9px] font-bold uppercase cursor-pointer text-slate-400 focus:outline-none">
+                                    ${COLUMNS.map(c => `<option value="${c.id}" ${task.status === c.id ? 'selected' : ''}>${c.title.replace(/[\u{1F300}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim()}</option>`).join('')}
+                                </select>
                             </div>
-                            <h3 class="font-bold text-white text-base md:text-lg leading-tight mb-1">${task.title}</h3>
-                            <p class="text-sm text-slate-400 line-clamp-1">${task.desc}</p>
+                            <h3 class="font-bold text-white text-[15px] md:text-base leading-tight truncate">${task.title}</h3>
+                            <p class="text-[11px] md:text-xs text-slate-400 mt-0.5 truncate">${task.desc}</p>
                         </div>
                         
-                        <div class="flex md:flex-col items-center justify-between md:justify-center gap-2 w-full md:w-36 bg-[#0f1115] p-2.5 rounded-lg border border-gray-800 shrink-0">
-                            <div class="text-xs text-slate-400"><i class="far fa-calendar-alt"></i> ${task.date}</div>
-                            <div class="text-sm font-mono font-bold text-blue-400"><i class="far fa-clock"></i> ${task.time}</div>
+                        <!-- 2. COLUMNA CENTRAL: Fecha y Hora (Caja Negra) -->
+                        <div class="bg-[#0f1115] p-2 rounded-md flex flex-row md:flex-col justify-center items-center gap-2 md:gap-0.5 border border-gray-800 min-w-[120px] w-full md:w-auto shrink-0">
+                            <div class="text-[10px] md:text-[11px] text-slate-400 flex items-center gap-1.5"><i class="far fa-calendar-alt"></i> ${task.date}</div>
+                            <div class="text-[10px] md:text-[11px] font-mono font-bold text-blue-400 flex items-center gap-1.5"><i class="far fa-clock"></i> ${task.time}</div>
+                            <div id="timer-${task.id}" class="text-[9px] font-bold text-center tracking-wider md:mt-0.5"></div>
                         </div>
                         
-                        <div class="w-full md:w-72 flex flex-col gap-2 shrink-0">
-                            <div class="flex justify-between items-end">
-                                <span class="text-xs font-semibold text-slate-300 uppercase">Avance</span>
-                                <span class="text-sm font-bold font-mono ${task.progress===100?'text-green-400':'text-blue-400'}">${task.progress}%</span>
+                        <!-- 3. COLUMNA DERECHA: Barra de Avance y Botones -->
+                        <div class="w-full md:w-[300px] flex flex-col shrink-0">
+                            <div class="flex justify-between items-end mb-1">
+                                <span class="text-[9px] font-bold text-slate-200 uppercase tracking-widest">AVANCE</span>
+                                <span class="text-[10px] font-bold font-mono text-blue-400">${task.progress}%</span>
                             </div>
-                            <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                            <div class="w-full h-1 bg-[#0f1115] rounded-full overflow-hidden mb-1.5 border border-gray-800/30">
                                 <div class="h-full transition-all duration-500 ${barColor}" style="width: ${task.progress}%"></div>
                             </div>
                             ${task.progress < 100 ? `
-                            <div class="flex gap-2 mt-1">
-                                <button onclick="updateProgress('${task.id}', 10)" class="flex-1 bg-gray-800 hover:bg-gray-700 text-xs py-1.5 rounded text-slate-300 transition-colors">+10%</button>
-                                <button onclick="updateProgress('${task.id}', 25)" class="flex-1 bg-gray-800 hover:bg-gray-700 text-xs py-1.5 rounded text-slate-300 transition-colors">+25%</button>
-                                <button onclick="updateProgress('${task.id}', 100)" class="flex-1 bg-blue-900/30 hover:bg-blue-600/40 text-blue-400 text-xs py-1.5 border border-blue-800/50 rounded transition-colors"><i class="fas fa-check"></i> Finalizar</button>
-                            </div>` : ''}
+                            <div class="flex gap-1.5">
+                                <button onclick="updateProgress('${task.id}', 10)" class="flex-1 bg-transparent hover:bg-gray-800 border border-gray-700 text-[10px] py-1 rounded text-slate-300 transition-colors">10%</button>
+                                <button onclick="updateProgress('${task.id}', 25)" class="flex-1 bg-transparent hover:bg-gray-800 border border-gray-700 text-[10px] py-1 rounded text-slate-300 transition-colors">25%</button>
+                                <button onclick="updateProgress('${task.id}', 50)" class="flex-1 bg-transparent hover:bg-gray-800 border border-gray-700 text-[10px] py-1 rounded text-slate-300 transition-colors">50%</button>
+                                <button onclick="updateProgress('${task.id}', 75)" class="flex-1 bg-transparent hover:bg-gray-800 border border-gray-700 text-[10px] py-1 rounded text-slate-300 transition-colors">75%</button>
+                                <button onclick="updateProgress('${task.id}', 100)" class="flex-[1.5] bg-transparent hover:bg-blue-900/30 border border-blue-900/50 text-blue-400 text-[10px] py-1 rounded transition-colors flex items-center justify-center gap-1"><i class="fas fa-check"></i> Finalizar</button>
+                            </div>` : '<div class="h-[22px]"></div>'}
                         </div>
                     </div>`;
                 });
@@ -231,10 +330,12 @@
                 colHTML += `</div></div>`;
                 board.innerHTML += colHTML;
             });
+            
+            updateTimers(); 
         }
 
         // ==========================================
-        // DRAG & DROP Y LÓGICA
+        // DRAG & DROP Y ACCIONES MANUALES
         // ==========================================
         function handleDragStart(e, id) {
             e.dataTransfer.setData('text/plain', id);
@@ -246,33 +347,216 @@
         function handleDrop(e, status) {
             e.preventDefault();
             const id = e.dataTransfer.getData('text/plain');
+            updateStatusManual(id, status);
+        }
+
+        function updateStatusManual(id, newStatus) {
             const task = tasks.find(t => t.id === id);
             if(task) {
-                task.status = status;
-                if(status === 'Completadas') task.progress = 100;
+                task.status = newStatus;
+                if(newStatus === 'Completadas') task.progress = 100;
+                else if (task.progress === 100) task.progress = 90;
                 renderBoard();
-                syncTaskWithCloud(task); // Sincronizar actualización
+                syncTaskWithCloud(task);
             }
         }
 
-        function updateProgress(id, add) {
+        function updateProgress(id, value) {
             const task = tasks.find(t => t.id === id);
             if(task) {
-                if(add === 100) task.progress = 100;
-                else task.progress = Math.min(100, task.progress + add);
-                
+                task.progress = value;
                 if(task.progress === 100) task.status = 'Completadas';
                 renderBoard();
-                syncTaskWithCloud(task); // Sincronizar actualización
+                syncTaskWithCloud(task);
+            }
+        }
+
+        function updatePriority(id, newPriority) {
+            const task = tasks.find(t => t.id === id);
+            if(task) {
+                task.priority = newPriority;
+                if (task.status === 'Prioridad Alta' && newPriority !== 'Alta') task.status = 'Pendientes';
+                else if (task.status === 'Pendientes' && newPriority === 'Alta') task.status = 'Prioridad Alta';
+                renderBoard();
+                syncTaskWithCloud(task); 
             }
         }
 
         // ==========================================
         // MODAL Y FORMULARIO
         // ==========================================
-        function openModal() { document.getElementById('task-modal').classList.remove('hidden'); }
-        function closeModal() { document.getElementById('task-modal').classList.add('hidden'); document.getElementById('new-task-form').reset(); }
+        function openModal() { 
+            document.getElementById('task-modal').classList.remove('hidden'); 
+            const now = new Date();
+            document.getElementById('task-date').value = now.toISOString().split('T')[0];
+            document.getElementById('task-time').value = now.toTimeString().slice(0,5);
+        }
+        
+        function closeModal() { 
+            document.getElementById('task-modal').classList.add('hidden'); 
+            document.getElementById('new-task-form').reset(); 
+            document.getElementById('ai-input').value = '';
+            document.getElementById('ai-status').classList.add('hidden');
+        }
 
+        // ==========================================
+        // IA ASISTENTE DE VOZ CONTINUO
+        // ==========================================
+        let smartRecognition = null;
+        let isSmartRecording = false;
+
+        function handleAiInputKeypress(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const inputEl = document.getElementById('ai-input');
+                if(isSmartRecording) toggleSmartDictation();
+                else processWithAI(inputEl.value);
+            }
+        }
+
+        function toggleSmartDictation() {
+            const inputEl = document.getElementById('ai-input');
+            const iconEl = document.getElementById('btn-smart-mic').querySelector('i');
+            const statusEl = document.getElementById('ai-status');
+
+            if (isSmartRecording) {
+                if (smartRecognition) smartRecognition.stop();
+                isSmartRecording = false;
+                iconEl.classList.add('fa-microphone');
+                iconEl.classList.remove('fa-square', 'text-red-500', 'animate-pulse');
+                
+                if(inputEl.value.trim().length > 0) processWithAI(inputEl.value);
+                else inputEl.placeholder = "Dicta tu orden...";
+                return;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Micrófono no soportado. Escribe y presiona Enter.';
+                statusEl.classList.replace('text-purple-400', 'text-red-400');
+                statusEl.classList.remove('hidden');
+                return;
+            }
+
+            smartRecognition = new SpeechRecognition();
+            smartRecognition.lang = 'es-ES';
+            smartRecognition.continuous = true; 
+            smartRecognition.interimResults = true; 
+            inputEl.value = '';
+
+            smartRecognition.onstart = function() {
+                isSmartRecording = true;
+                iconEl.classList.remove('fa-microphone');
+                iconEl.classList.add('fa-square', 'text-red-500', 'animate-pulse');
+                inputEl.placeholder = "Escuchando... (Haz clic en el cuadro rojo para terminar)";
+                statusEl.classList.add('hidden');
+            };
+
+            let finalTranscript = '';
+            smartRecognition.onresult = function(event) {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+                    else interimTranscript += event.results[i][0].transcript;
+                }
+                inputEl.value = finalTranscript + interimTranscript;
+            };
+
+            smartRecognition.onerror = function(event) {
+                isSmartRecording = false;
+                iconEl.classList.add('fa-microphone');
+                iconEl.classList.remove('fa-square', 'text-red-500', 'animate-pulse');
+                if (event.error !== 'no-speech') {
+                    statusEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Error de micro. Escribe tu orden.`;
+                    statusEl.classList.replace('text-purple-400', 'text-red-400');
+                    statusEl.classList.remove('hidden');
+                }
+            };
+
+            smartRecognition.onend = function() {
+                if (isSmartRecording) {
+                    isSmartRecording = false;
+                    iconEl.classList.add('fa-microphone');
+                    iconEl.classList.remove('fa-square', 'text-red-500', 'animate-pulse');
+                    if(inputEl.value.trim().length > 0) processWithAI(inputEl.value);
+                }
+            };
+            smartRecognition.start();
+        }
+
+        async function processWithAI(text) {
+            if(!text) return;
+            const statusEl = document.getElementById('ai-status');
+            statusEl.classList.remove('hidden');
+            statusEl.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Procesando con IA...';
+            statusEl.classList.replace('text-red-400', 'text-purple-400');
+            statusEl.classList.replace('text-green-400', 'text-purple-400');
+            
+            try {
+                const today = new Date();
+                const currentDateStr = today.toISOString().split('T')[0];
+                const currentTimeStr = today.toTimeString().slice(0,5);
+
+                const prompt = `
+Extrae info para crear tarea. Hoy: ${currentDateStr}, Hora: ${currentTimeStr}.
+1. title: Resumen muy corto.
+2. desc: Detalles extra.
+3. category: Palabra clave (Mantenimiento, Ventas, Instalación, etc).
+4. priority: "Alta" o "Baja".
+5. date: Formato YYYY-MM-DD. ("mañana" = suma 1 día).
+6. time: Formato HH:MM. (si no dice = "10:00").
+
+Texto: "${text}"`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                title: { type: "STRING" }, desc: { type: "STRING" }, category: { type: "STRING" },
+                                priority: { type: "STRING" }, date: { type: "STRING" }, time: { type: "STRING" }
+                            }
+                        }
+                    }
+                };
+
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                
+                let result = null;
+                for (let i = 0; i < 3; i++) {
+                    try {
+                        const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                        if (!response.ok) throw new Error("API status");
+                        result = await response.json(); break;
+                    } catch (error) { if (i === 2) throw error; await new Promise(r => setTimeout(r, 1000)); }
+                }
+
+                let jsonText = result.candidates[0].content.parts[0].text.replace(/```json/gi, '').replace(/```/g, '').trim();
+                const taskData = JSON.parse(jsonText);
+
+                document.getElementById('task-title').value = taskData.title || '';
+                document.getElementById('task-desc').value = taskData.desc || '';
+                document.getElementById('task-cat').value = taskData.category || 'General';
+                document.getElementById('task-date').value = taskData.date || currentDateStr;
+                document.getElementById('task-time').value = taskData.time || '10:00';
+                
+                const prioSelect = document.getElementById('task-prio');
+                prioSelect.value = ['Alta', 'Baja'].includes(taskData.priority) ? taskData.priority : 'Baja';
+
+                statusEl.innerHTML = '<i class="fas fa-check-circle"></i> ¡Llenado exitoso!';
+                statusEl.classList.replace('text-purple-400', 'text-green-400');
+                setTimeout(() => { statusEl.classList.add('hidden'); document.getElementById('ai-input').value = ''; }, 3000);
+            } catch (error) {
+                statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error en la IA. Intenta de nuevo.';
+                statusEl.classList.replace('text-purple-400', 'text-red-400');
+            }
+        }
+
+        // ==========================================
+        // GUARDADO DE TAREA
+        // ==========================================
         document.getElementById('new-task-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             document.getElementById('btn-save').innerText = 'Guardando...';
@@ -291,8 +575,6 @@
 
             tasks.push(newTask);
             renderBoard();
-            
-            // Subir a Google Sheets
             await syncTaskWithCloud(newTask);
             
             closeModal();
@@ -302,48 +584,31 @@
         // ==========================================
         // INTEGRACIÓN CON GOOGLE SHEETS
         // ==========================================
-        
-        // 1. Obtener datos al cargar
         async function fetchTasksFromCloud() {
-            if(!GOOGLE_API_URL) {
-                renderBoard(); return; // Usa mock si no hay API
-            }
+            if(!GOOGLE_API_URL) { renderBoard(); return; }
             try {
-                document.getElementById('sync-indicator').classList.replace('bg-blue-500', 'bg-yellow-500'); // Cargando
+                document.getElementById('sync-indicator').classList.replace('bg-blue-500', 'bg-yellow-500');
                 const response = await fetch(GOOGLE_API_URL);
                 const data = await response.json();
-                if(data && data.length > 0) {
-                    tasks = data; 
-                }
+                if(data && data.length > 0) tasks = data; 
                 renderBoard();
-                document.getElementById('sync-indicator').classList.replace('bg-yellow-500', 'bg-green-500'); // OK
+                document.getElementById('sync-indicator').classList.replace('bg-yellow-500', 'bg-green-500');
             } catch (error) {
-                console.error('Error cargando tareas:', error);
-                document.getElementById('sync-indicator').classList.replace('bg-blue-500', 'bg-red-500'); // Error
-                renderBoard(); // Renderiza locales en caso de error
+                document.getElementById('sync-indicator').classList.replace('bg-blue-500', 'bg-red-500');
+                renderBoard();
             }
         }
 
-        // 2. Enviar datos (Añadir/Actualizar)
         async function syncTaskWithCloud(task) {
             if(!GOOGLE_API_URL) return;
             try {
-                // Se envía por método POST
                 await fetch(GOOGLE_API_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', // Evita bloqueos de CORS de Google
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(task)
+                    method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(task)
                 });
-                console.log("Sincronizado con Google Sheets");
-            } catch (error) {
-                console.error("Error sincronizando:", error);
-            }
+            } catch (e) {}
         }
 
-        // Iniciar
         fetchTasksFromCloud();
-
     </script>
 </body>
 </html>
