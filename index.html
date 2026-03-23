@@ -18,17 +18,17 @@
         @keyframes pulse-cyan { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.15); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
     </style>
 </head>
-<body class="bg-[#0f1115] text-slate-200 font-sans h-screen flex flex-col overflow-hidden selection:bg-cyan-500/30 text-left">
+<body class="bg-[#0f1115] text-slate-200 font-sans h-screen flex flex-col overflow-hidden selection:bg-blue-500/30 text-left">
 
     <!-- CABECERA -->
     <header class="bg-[#161b22] border-b border-gray-800 p-4 md:px-6 md:py-4 shadow-md z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div class="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8 w-full md:w-auto">
             <div class="flex flex-col">
-                <h1 class="text-xl md:text-[22px] font-bold tracking-tight text-white flex items-center gap-2">
+                <h1 class="text-xl md:text-[22px] font-bold tracking-tight text-white flex items-center gap-2 text-left">
                     <div class="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-pulse"></div>
                     Centro de Control Diario
                 </h1>
-                <p class="text-slate-400 text-[11px] md:text-xs capitalize mt-0.5" id="current-date"></p>
+                <p class="text-slate-400 text-[11px] md:text-xs capitalize mt-0.5 text-left" id="current-date"></p>
             </div>
             <div class="hidden md:block w-px h-10 bg-gray-700"></div>
             <div class="flex gap-6 md:gap-8 w-full md:w-auto justify-around md:justify-start border-t md:border-t-0 border-gray-800 pt-3 md:pt-0 text-center">
@@ -59,30 +59,30 @@
     </main>
 
     <!-- MODAL TAREA INTELIGENTE -->
-    <div id="task-modal" class="fixed inset-0 bg-black/80 hidden z-50 flex justify-center items-center backdrop-blur-sm overflow-y-auto p-4">
+    <div id="task-modal" class="fixed inset-0 bg-black/80 hidden z-50 flex justify-center items-center backdrop-blur-sm overflow-y-auto p-4 text-left">
         <div class="bg-[#161b22] border border-gray-700 rounded-xl w-full max-w-lg p-5 md:p-6 shadow-2xl transform transition-all my-auto">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg md:text-xl font-bold text-white uppercase tracking-widest text-xs text-left">Añadir con IA (Groq)</h2>
+                <h2 class="text-lg md:text-xl font-bold text-white uppercase tracking-widest text-xs">Añadir con IA (Groq)</h2>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-white p-1 transition-colors"><i class="fas fa-times text-xl"></i></button>
             </div>
 
-            <!-- ASISTENTE DE VOZ ACUMULATIVO -->
+            <!-- ASISTENTE DE VOZ (INMORTAL Y ACUMULATIVO) -->
             <div class="mb-5 md:mb-6 p-4 bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-500/30 rounded-xl relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-500 to-blue-500"></div>
-                <label class="block text-sm font-bold text-cyan-400 mb-1 flex items-center gap-2 uppercase tracking-tighter text-left">
-                    <i class="fas fa-magic"></i> Dictado Continuo (Micrófono Eterno)
+                <label class="block text-sm font-bold text-cyan-400 mb-1 flex items-center gap-2 uppercase tracking-tighter">
+                    <i class="fas fa-microphone-lines"></i> Dictado Inmortal y Acumulativo
                 </label>
                 <div class="flex gap-2 mt-2">
                     <div class="relative flex-1">
-                        <textarea id="ai-input" placeholder="Hable libremente. El texto se acumulará..." rows="3" class="w-full bg-[#0f1115] border border-cyan-500/50 rounded-lg pl-3 pr-12 py-3 text-white focus:border-cyan-400 outline-none text-sm resize-none custom-scrollbar transition-all"></textarea>
+                        <textarea id="ai-input" placeholder="Hable libremente. El texto se acumulará y el micrófono no se apagará solo..." rows="3" class="w-full bg-[#0f1115] border border-cyan-500/50 rounded-lg pl-3 pr-12 py-3 text-white focus:border-cyan-400 outline-none text-sm resize-none custom-scrollbar transition-all"></textarea>
                         <button type="button" onclick="toggleSmartDictation()" class="absolute right-2 bottom-2 w-10 h-10 flex justify-center items-center bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-400 rounded-md transition-all group" id="btn-smart-mic">
                             <i class="fas fa-microphone text-lg" id="mic-icon"></i>
                         </button>
                     </div>
                 </div>
-                <div id="ai-status" class="text-[11px] text-cyan-400 mt-2 font-mono font-bold hidden flex flex-col gap-1 text-left">
+                <div id="ai-status" class="text-[11px] text-cyan-400 mt-2 font-mono font-bold hidden flex flex-col gap-1">
                     <div class="flex items-center gap-2">
-                        <i class="fas fa-bolt animate-pulse text-yellow-400" id="ai-spinner"></i> <span id="status-text">Analizando instrucción...</span>
+                        <i class="fas fa-bolt animate-pulse text-yellow-400" id="ai-spinner"></i> <span id="status-text">Escuchando...</span>
                     </div>
                     <div id="api-error-info" class="text-[9px] text-red-400 italic hidden border-t border-red-900/30 pt-1 mt-1"></div>
                 </div>
@@ -91,11 +91,11 @@
             <form id="new-task-form" class="space-y-3 md:space-y-4">
                 <div class="text-left text-xs">
                     <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider">Título de la tarea</label>
-                    <input type="text" id="task-title" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none">
+                    <input type="text" id="task-title" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 outline-none">
                 </div>
                 <div class="text-left text-xs">
                     <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider">Descripción</label>
-                    <textarea id="task-desc" rows="2" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none"></textarea>
+                    <textarea id="task-desc" rows="2" class="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 outline-none"></textarea>
                 </div>
                 <div class="grid grid-cols-2 gap-4 text-left text-xs">
                     <div>
@@ -103,14 +103,14 @@
                         <input type="text" id="task-cat" value="General" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white outline-none">
                     </div>
                     <div>
-                        <label class="block font-semibold text-slate-400 mb-1 uppercase text-left">Prioridad</label>
+                        <label class="block font-semibold text-slate-400 mb-1 uppercase">Prioridad</label>
                         <select id="task-prio" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white outline-none">
                             <option value="Alta">Alta</option>
                             <option value="Baja" selected>Baja</option>
                         </select>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-4 text-left text-xs text-left">
+                <div class="grid grid-cols-2 gap-4 text-left text-xs">
                     <div>
                         <label class="block font-semibold text-slate-400 mb-1 uppercase text-[10px]">Fecha</label>
                         <input type="date" id="task-date" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white" style="color-scheme: dark;">
@@ -158,13 +158,13 @@
 
             COLUMNS.forEach(col => {
                 const colTasks = tasks.filter(t => t.status === col.id);
-                let colHTML = `<div class="w-full flex flex-col bg-[#161b22] border border-gray-800 rounded-xl overflow-hidden shadow-lg mb-4 text-left">
+                let colHTML = `<div class="w-full flex flex-col bg-[#161b22] border border-gray-800 rounded-xl overflow-hidden shadow-lg mb-4 text-left font-semibold">
                     <div class="p-3 border-b border-gray-800 flex justify-between items-center ${col.bg}">
                         <h2 class="font-bold text-[10px] md:text-[11px] tracking-widest text-slate-200 uppercase">${col.title}</h2>
                         <span class="bg-[#0f1115] text-slate-400 text-[10px] px-2 py-0.5 rounded font-bold border border-gray-800">${colTasks.length}</span>
                     </div>
                     <div class="p-2 md:p-3 flex flex-col gap-2 min-h-[50px] bg-[#161b22]">`;
-                if (colTasks.length === 0) colHTML += `<div class="h-8 flex items-center justify-center text-[10px] text-slate-600 uppercase tracking-tighter italic w-full">Vacio</div>`;
+                if (colTasks.length === 0) colHTML += `<div class="h-8 flex items-center justify-center text-[10px] text-slate-600 uppercase tracking-tighter italic w-full text-center">Vacio</div>`;
                 colTasks.forEach(task => {
                     const statusColor = task.progress === 100 ? 'bg-green-500' : 'bg-cyan-500';
                     colHTML += `<div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-[#1c212b] border border-gray-800 rounded-lg p-3 relative task-card">
@@ -211,11 +211,11 @@
         }
 
         // ==========================================
-        // MICRÓFONO ETERNO (MODO CHAT REAL)
+        // MICRÓFONO INMORTAL Y ACUMULATIVO
         // ==========================================
         let recognition = null;
         let isRecording = false;
-        let anchoredText = ""; 
+        let finalHistory = ""; 
 
         function toggleSmartDictation() {
             const inputEl = document.getElementById('ai-input');
@@ -227,6 +227,7 @@
                 if (recognition) recognition.stop();
                 iconEl.className = "fas fa-microphone text-lg";
                 iconEl.classList.remove('mic-active');
+                // Al detener, procesamos todo el acumulado con Groq
                 if(inputEl.value.trim().length > 3) processWithGroq(inputEl.value);
                 return;
             }
@@ -239,7 +240,8 @@
             recognition.continuous = true;
             recognition.interimResults = true;
             
-            anchoredText = inputEl.value;
+            // Sincronizar historia con lo que ya está escrito manualmente
+            finalHistory = inputEl.value;
 
             recognition.onstart = () => {
                 isRecording = true;
@@ -251,25 +253,37 @@
             };
 
             recognition.onresult = (event) => {
-                let currentSessionText = "";
+                let interimTranscript = "";
+                let confirmedThisSession = "";
+
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    currentSessionText += event.results[i][0].transcript;
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        confirmedThisSession += transcript + " ";
+                    } else {
+                        interimTranscript += transcript;
+                    }
                 }
-                inputEl.value = (anchoredText.trim() ? anchoredText.trim() + " " : "") + currentSessionText;
+                
+                if (confirmedThisSession) {
+                    finalHistory = (finalHistory.trim() ? finalHistory.trim() + " " : "") + confirmedThisSession;
+                }
+
+                inputEl.value = (finalHistory + interimTranscript).trim();
                 inputEl.scrollTop = inputEl.scrollHeight;
             };
 
             recognition.onend = () => {
+                // REINICIO AUTOMÁTICO INMEDIATO (LO HACE ETERNO)
                 if (isRecording) {
-                    anchoredText = inputEl.value; 
-                    setTimeout(() => { try { recognition.start(); } catch(e){} }, 50);
+                    try { recognition.start(); } catch(e){} 
                 }
             };
             recognition.start();
         }
 
         // ==========================================
-        // MOTOR DE IA: GROQ (LLAMA 3.1)
+        // MOTOR DE IA: GROQ (CONEXIÓN ROBUSTA)
         // ==========================================
         async function processWithGroq(text) {
             const statusEl = document.getElementById('ai-status');
@@ -279,21 +293,22 @@
 
             statusEl.classList.remove('hidden');
             errorInfo.classList.add('hidden');
-            statusText.innerText = "Groq analizando...";
-            spinner.className = "fas fa-bolt text-yellow-400 animate-pulse";
+            statusText.innerText = "IA procesando campos...";
+            spinner.className = "fas fa-bolt animate-pulse text-yellow-400";
 
             const today = new Date();
             const todayStr = today.toISOString().split('T')[0];
             
-            const prompt = `Extrae datos de tarea. Hoy es ${today.toDateString()}. Texto: "${text}". 
-            Responde exclusivamente un JSON: {"title": "título", "desc": "descripción", "category": "categoría", "priority": "Alta"|"Baja", "date": "YYYY-MM-DD", "time": "HH:MM"}`;
+            const prompt = `Actúa como un extractor de datos profesional. Analiza el siguiente texto y devuelve un objeto JSON en español. 
+            Texto: "${text}". 
+            Fecha de hoy: ${todayStr}.
+            FORMATO: {"title": "resumen", "desc": "detalles", "category": "tipo", "priority": "Alta"|"Baja", "date": "YYYY-MM-DD", "time": "HH:MM"}`;
 
             try {
-                // Cambiamos a un proxy más estable o intento directo (algunos navegadores lo permiten con Groq)
                 const apiUrl = "https://api.groq.com/openai/v1/chat/completions";
                 
-                // Usamos un proxy de respaldo en caso de fallo
-                const fetchIA = async (url) => {
+                // Sistema de respaldo con proxy si falla directo
+                const tryFetch = async (url) => {
                     return await fetch(url, {
                         method: 'POST',
                         headers: { 
@@ -302,7 +317,10 @@
                         },
                         body: JSON.stringify({
                             model: "llama-3.1-8b-instant",
-                            messages: [{ role: "user", content: prompt }],
+                            messages: [
+                                { role: "system", content: "Responde exclusivamente en JSON válido." },
+                                { role: "user", content: prompt }
+                            ],
                             temperature: 0.1,
                             response_format: { type: "json_object" }
                         })
@@ -311,23 +329,21 @@
 
                 let response;
                 try {
-                    // Intento 1: Directo (puede fallar por CORS)
-                    response = await fetchIA(apiUrl);
+                    response = await tryFetch(apiUrl);
                 } catch(e) {
-                    // Intento 2: Proxy corsproxy.io
-                    console.log("Intento directo falló, usando proxy...");
-                    response = await fetchIA("https://corsproxy.io/?" + encodeURIComponent(apiUrl));
+                    // Si falla por CORS, intentamos con el proxy
+                    response = await tryFetch("https://corsproxy.io/?" + encodeURIComponent(apiUrl));
                 }
 
                 if (!response.ok) {
                     const err = await response.json();
-                    throw new Error(err.error?.message || "Error del servidor de IA");
+                    throw new Error(err.error?.message || "Error del servidor Groq");
                 }
 
                 const result = await response.json();
                 const data = JSON.parse(result.choices[0].message.content);
 
-                // Llenado de campos
+                // --- LLENADO DE CAMPOS ---
                 document.getElementById('task-title').value = data.title || "";
                 document.getElementById('task-desc').value = data.desc || "";
                 document.getElementById('task-cat').value = data.category || "General";
@@ -335,15 +351,15 @@
                 document.getElementById('task-time').value = data.time || "10:00";
                 document.getElementById('task-prio').value = (data.priority === "Alta") ? "Alta" : "Baja";
 
-                statusText.innerText = "¡Campos rellenados con Groq!";
+                statusText.innerText = "¡Campos rellenados con éxito!";
                 spinner.className = "fas fa-check-circle text-green-400";
                 setTimeout(() => statusEl.classList.add('hidden'), 3000);
 
             } catch (e) {
                 console.error("Error Groq:", e);
-                statusText.innerText = "Fallo de comunicación";
-                spinner.className = "fas fa-times-circle text-red-400";
-                errorInfo.innerHTML = `<b>Error Técnico:</b> ${e.message}<br><br>Verifica que tu llave de Groq sea correcta y que no tengas bloqueadores de red activos.`;
+                statusText.innerText = "Error al procesar";
+                spinner.className = "fas fa-exclamation-triangle text-red-400";
+                errorInfo.innerHTML = `<b>Error:</b> ${e.message}`;
                 errorInfo.classList.remove('hidden');
             }
         }
@@ -359,6 +375,7 @@
             document.getElementById('task-modal').classList.add('hidden');
             document.getElementById('new-task-form').reset();
             document.getElementById('ai-input').value = "";
+            finalHistory = ""; 
             if (recognition) recognition.stop();
             isRecording = false;
         }
