@@ -12,29 +12,26 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #0f1115; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
-        .dragging { opacity: 0.5; }
-        .board-container { scrollbar-width: thin; scrollbar-color: #334155 #0f1115; }
-        select.clean-select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
         .task-card { min-height: 60px; border-width: 1px; border-color: #374151; transition: all 0.2s ease; }
         .task-card:hover { border-color: #4b5563; background-color: #242933; }
-        .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; }
-        @keyframes pulse-red { 0% { transform: scale(1); } 50% { transform: scale(1.2); opacity: 0.8; } 100% { transform: scale(1); } }
+        .mic-active { color: #22d3ee !important; animation: pulse-cyan 1.5s infinite; }
+        @keyframes pulse-cyan { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.15); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
     </style>
 </head>
-<body class="bg-[#0f1115] text-slate-200 font-sans h-screen flex flex-col overflow-hidden selection:bg-blue-500/30">
+<body class="bg-[#0f1115] text-slate-200 font-sans h-screen flex flex-col overflow-hidden selection:bg-cyan-500/30 text-left">
 
-    <!-- HEADER DISEÑO COMPACTO -->
+    <!-- CABECERA -->
     <header class="bg-[#161b22] border-b border-gray-800 p-4 md:px-6 md:py-4 shadow-md z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div class="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8 w-full md:w-auto text-left">
+        <div class="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8 w-full md:w-auto">
             <div class="flex flex-col">
                 <h1 class="text-xl md:text-[22px] font-bold tracking-tight text-white flex items-center gap-2">
-                    <div class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" id="sync-indicator"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-pulse"></div>
                     Centro de Control Diario
                 </h1>
                 <p class="text-slate-400 text-[11px] md:text-xs capitalize mt-0.5" id="current-date"></p>
             </div>
             <div class="hidden md:block w-px h-10 bg-gray-700"></div>
-            <div class="flex gap-6 md:gap-8 w-full md:w-auto justify-around md:justify-start border-t md:border-t-0 border-gray-800 pt-3 md:pt-0">
+            <div class="flex gap-6 md:gap-8 w-full md:w-auto justify-around md:justify-start border-t md:border-t-0 border-gray-800 pt-3 md:pt-0 text-center">
                 <div class="flex flex-col items-center">
                     <span class="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Pendientes</span>
                     <span class="text-lg md:text-xl font-bold text-red-500 leading-none" id="stat-pending">0</span>
@@ -51,91 +48,91 @@
         </div>
         <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
             <div class="text-xl md:text-2xl font-mono font-bold tracking-widest text-white bg-[#0f1115] px-4 py-1.5 rounded-lg border border-gray-800 hidden sm:block" id="current-time">00:00:00</div>
-            <button onclick="openModal()" class="flex-1 md:flex-none flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 md:py-2.5 rounded-md font-bold transition-all text-sm shadow-md">
+            <button onclick="openModal()" class="flex-1 md:flex-none flex justify-center items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 md:py-2.5 rounded-md font-bold transition-all text-sm shadow-md active:scale-95">
                 <i class="fas fa-plus"></i><span>Nueva Tarea</span>
             </button>
         </div>
     </header>
 
-    <main class="flex-1 overflow-x-hidden overflow-y-auto p-3 md:p-6 custom-scrollbar board-container">
+    <main class="flex-1 overflow-x-hidden overflow-y-auto p-3 md:p-6 custom-scrollbar">
         <div class="flex flex-col gap-4 md:gap-5 w-full max-w-[1300px] mx-auto pb-10" id="kanban-board"></div>
     </main>
 
-    <!-- MODAL NUEVA TAREA -->
+    <!-- MODAL TAREA INTELIGENTE -->
     <div id="task-modal" class="fixed inset-0 bg-black/80 hidden z-50 flex justify-center items-center backdrop-blur-sm overflow-y-auto p-4">
         <div class="bg-[#161b22] border border-gray-700 rounded-xl w-full max-w-lg p-5 md:p-6 shadow-2xl transform transition-all my-auto">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg md:text-xl font-bold text-white">Añadir Nueva Tarea</h2>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-white p-1"><i class="fas fa-times text-xl"></i></button>
+                <h2 class="text-lg md:text-xl font-bold text-white uppercase tracking-widest text-xs text-left">Añadir con IA (Groq)</h2>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white p-1 transition-colors"><i class="fas fa-times text-xl"></i></button>
             </div>
 
-            <!-- ASISTENTE DE IA ACUMULATIVO -->
-            <div class="mb-5 md:mb-6 p-4 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl relative overflow-hidden shadow-inner">
-                <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 to-blue-500"></div>
-                <label class="block text-sm font-bold text-purple-400 mb-1 flex items-center gap-2 uppercase tracking-tighter">
-                    <i class="fas fa-magic"></i> Micrófono Inteligente Continuo
+            <!-- ASISTENTE DE VOZ ACUMULATIVO -->
+            <div class="mb-5 md:mb-6 p-4 bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-500/30 rounded-xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-500 to-blue-500"></div>
+                <label class="block text-sm font-bold text-cyan-400 mb-1 flex items-center gap-2 uppercase tracking-tighter text-left">
+                    <i class="fas fa-magic"></i> Dictado Continuo (Micrófono Eterno)
                 </label>
-                <p class="text-[10px] text-slate-400 mb-3 italic text-left">Hable libremente. El texto se acumula y el micro no se apaga solo.</p>
-                
-                <div class="flex gap-2">
-                    <div class="relative flex-1 text-left">
-                        <textarea id="ai-input" placeholder="Dicta tu tarea aquí..." rows="3" class="w-full bg-[#0f1115] border border-purple-500/50 rounded-lg pl-3 pr-12 py-3 text-white focus:border-purple-400 outline-none text-sm resize-none custom-scrollbar transition-all"></textarea>
-                        <button type="button" onclick="toggleSmartDictation()" class="absolute right-2 bottom-2 w-10 h-10 flex justify-center items-center bg-purple-600/20 hover:bg-purple-600/40 text-purple-400 rounded-md transition-all group" id="btn-smart-mic">
+                <div class="flex gap-2 mt-2">
+                    <div class="relative flex-1">
+                        <textarea id="ai-input" placeholder="Hable libremente. El texto se acumulará..." rows="3" class="w-full bg-[#0f1115] border border-cyan-500/50 rounded-lg pl-3 pr-12 py-3 text-white focus:border-cyan-400 outline-none text-sm resize-none custom-scrollbar transition-all"></textarea>
+                        <button type="button" onclick="toggleSmartDictation()" class="absolute right-2 bottom-2 w-10 h-10 flex justify-center items-center bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-400 rounded-md transition-all group" id="btn-smart-mic">
                             <i class="fas fa-microphone text-lg" id="mic-icon"></i>
                         </button>
                     </div>
                 </div>
-                <div id="ai-status" class="text-xs text-purple-400 mt-2 font-mono font-bold hidden flex items-center gap-2">
-                    <i class="fas fa-circle-notch fa-spin"></i> <span id="status-text">Procesando...</span>
+                <div id="ai-status" class="text-[11px] text-cyan-400 mt-2 font-mono font-bold hidden flex flex-col gap-1 text-left">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-bolt animate-pulse text-yellow-400" id="ai-spinner"></i> <span id="status-text">Analizando instrucción...</span>
+                    </div>
+                    <div id="api-error-info" class="text-[9px] text-red-400 italic hidden border-t border-red-900/30 pt-1 mt-1"></div>
                 </div>
             </div>
 
             <form id="new-task-form" class="space-y-3 md:space-y-4">
-                <div class="text-left">
-                    <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Título de la tarea</label>
-                    <input type="text" id="task-title" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 outline-none text-sm">
+                <div class="text-left text-xs">
+                    <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider">Título de la tarea</label>
+                    <input type="text" id="task-title" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none">
                 </div>
-                <div class="text-left">
-                    <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Descripción</label>
-                    <textarea id="task-desc" rows="2" class="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 outline-none text-sm"></textarea>
+                <div class="text-left text-xs">
+                    <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider">Descripción</label>
+                    <textarea id="task-desc" rows="2" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none"></textarea>
                 </div>
-                <div class="grid grid-cols-2 gap-4 text-left">
+                <div class="grid grid-cols-2 gap-4 text-left text-xs">
                     <div>
-                        <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1">Categoría</label>
-                        <input type="text" id="task-cat" value="General" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white outline-none text-sm">
+                        <label class="block font-semibold text-slate-400 mb-1 uppercase">Categoría</label>
+                        <input type="text" id="task-cat" value="General" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white outline-none">
                     </div>
                     <div>
-                        <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1">Prioridad</label>
-                        <select id="task-prio" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white outline-none text-sm">
+                        <label class="block font-semibold text-slate-400 mb-1 uppercase text-left">Prioridad</label>
+                        <select id="task-prio" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white outline-none">
                             <option value="Alta">Alta</option>
                             <option value="Baja" selected>Baja</option>
                         </select>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-4 text-left">
+                <div class="grid grid-cols-2 gap-4 text-left text-xs text-left">
                     <div>
-                        <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1 uppercase">Fecha</label>
-                        <input type="date" id="task-date" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white text-sm" style="color-scheme: dark;">
+                        <label class="block font-semibold text-slate-400 mb-1 uppercase text-[10px]">Fecha</label>
+                        <input type="date" id="task-date" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white" style="color-scheme: dark;">
                     </div>
                     <div>
-                        <label class="block text-[10px] md:text-xs font-semibold text-slate-400 mb-1 uppercase">Hora</label>
-                        <input type="time" id="task-time" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white text-sm">
+                        <label class="block font-semibold text-slate-400 mb-1 uppercase text-[10px]">Hora</label>
+                        <input type="time" id="task-time" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white">
                     </div>
                 </div>
                 <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
-                    <button type="button" onclick="closeModal()" class="px-3 py-2 text-xs md:text-sm font-semibold text-slate-300 hover:text-white transition-colors">Cancelar</button>
-                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs md:text-sm font-bold rounded-lg shadow-lg">Guardar Tarea</button>
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white transition-colors">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg shadow-lg active:scale-95">Guardar Tarea</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        // CONFIGURACIÓN: En este entorno "" funciona automáticamente.
-        // Para GitHub, reemplaza "" por "AIzaSyDd5JHdIdgX3Md9hoWJxpimJagxY8icA9Y"
-        const apiKey = ""; 
-        let tasks = [];
+        // --- API KEY DE GROQ ---
+        const aiKey = "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"; 
 
+        let tasks = [];
         const COLUMNS = [
             { id: 'Prioridad Alta', title: '🔥 PRIORIDAD ALTA', bg: 'bg-[#1f1616]' },
             { id: 'En Proceso', title: '⚙️ EN PROCESO', bg: 'bg-[#161c22]' },
@@ -162,39 +159,38 @@
             COLUMNS.forEach(col => {
                 const colTasks = tasks.filter(t => t.status === col.id);
                 let colHTML = `<div class="w-full flex flex-col bg-[#161b22] border border-gray-800 rounded-xl overflow-hidden shadow-lg mb-4 text-left">
-                    <div class="px-4 py-2.5 border-b border-gray-800 flex justify-between items-center ${col.bg}">
+                    <div class="p-3 border-b border-gray-800 flex justify-between items-center ${col.bg}">
                         <h2 class="font-bold text-[10px] md:text-[11px] tracking-widest text-slate-200 uppercase">${col.title}</h2>
                         <span class="bg-[#0f1115] text-slate-400 text-[10px] px-2 py-0.5 rounded font-bold border border-gray-800">${colTasks.length}</span>
                     </div>
                     <div class="p-2 md:p-3 flex flex-col gap-2 min-h-[50px] bg-[#161b22]">`;
-                if (colTasks.length === 0) colHTML += `<div class="h-8 flex items-center justify-center text-[10px] text-slate-600 uppercase tracking-tighter">Vacio</div>`;
-
+                if (colTasks.length === 0) colHTML += `<div class="h-8 flex items-center justify-center text-[10px] text-slate-600 uppercase tracking-tighter italic w-full">Vacio</div>`;
                 colTasks.forEach(task => {
-                    const statusColor = task.progress === 100 ? 'bg-green-500' : 'bg-blue-500';
+                    const statusColor = task.progress === 100 ? 'bg-green-500' : 'bg-cyan-500';
                     colHTML += `<div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-[#1c212b] border border-gray-800 rounded-lg p-3 relative task-card">
-                        <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg ${task.priority === 'Alta' ? 'bg-red-500' : 'bg-blue-500'}"></div>
-                        <div class="flex-1 pl-2 w-full md:w-auto min-w-0">
+                        <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg ${task.priority === 'Alta' ? 'bg-red-500' : 'bg-cyan-500'}"></div>
+                        <div class="flex-1 pl-2 w-full md:w-auto min-w-0 text-left">
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="text-[9px] font-bold uppercase text-slate-300 bg-[#0f1115] px-1.5 py-0.5 rounded border border-gray-800/50">${task.category}</span>
-                                <span class="text-[9px] font-bold uppercase ${task.priority === 'Alta' ? 'text-red-400' : 'text-blue-400'}">${task.priority}</span>
+                                <span class="text-[9px] font-bold uppercase ${task.priority === 'Alta' ? 'text-red-400' : 'text-cyan-400'}">${task.priority}</span>
                             </div>
-                            <h3 class="font-bold text-white text-[15px] truncate">${task.title}</h3>
-                            <p class="text-[10px] text-slate-400 truncate">${task.desc || '...'}</p>
+                            <h3 class="font-bold text-white text-base md:text-[17px] truncate text-left">${task.title}</h3>
+                            <p class="text-[10px] text-slate-400 truncate text-left">${task.desc || '...'}</p>
                         </div>
-                        <div class="bg-[#0f1115] p-2 rounded-md flex flex-row md:flex-col items-center justify-center gap-3 md:gap-0.5 border border-gray-800 min-w-[120px] shrink-0 text-center">
-                            <div class="text-[10px] text-slate-400 font-semibold">${task.date}</div>
-                            <div class="text-[10px] font-mono font-bold text-blue-400">${task.time}</div>
+                        <div class="bg-[#0f1115] p-2 rounded-md flex flex-row md:flex-col items-center justify-center gap-3 md:gap-0.5 border border-gray-800 min-w-[120px] shrink-0 text-center text-xs">
+                            <div class="text-slate-400 font-semibold">${task.date}</div>
+                            <div class="font-mono font-bold text-cyan-400">${task.time}</div>
                         </div>
                         <div class="w-full md:w-[320px] flex flex-col shrink-0 self-center">
                             <div class="flex justify-between items-end mb-1">
                                 <span class="text-[9px] font-bold text-slate-200 uppercase tracking-widest">Avance</span>
-                                <span class="text-[10px] font-bold font-mono text-blue-400">${task.progress}%</span>
+                                <span class="text-[10px] font-bold font-mono text-cyan-400">${task.progress}%</span>
                             </div>
                             <div class="w-full h-1 bg-[#0f1115] rounded-full overflow-hidden mb-2 shadow-inner">
                                 <div class="h-full transition-all duration-500 ${statusColor}" style="width: ${task.progress}%"></div>
                             </div>
                             <div class="flex gap-1">
-                                ${[10, 25, 50, 75, 100].map(v => `<button onclick="updateTaskProgress('${task.id}', ${v})" class="flex-1 bg-transparent hover:bg-gray-800 border border-gray-700 text-[9px] py-1 rounded text-slate-400 transition-colors">${v === 100 ? 'Fin' : v+'%'}</button>`).join('')}
+                                ${[10, 25, 50, 75, 100].map(v => `<button onclick="updateTaskProgress('${task.id}', ${v})" class="flex-1 bg-transparent hover:bg-gray-800 border border-gray-700 text-[9px] py-1 rounded text-slate-400 transition-colors font-bold">${v === 100 ? 'Fin' : v+'%'}</button>`).join('')}
                             </div>
                         </div>
                     </div>`;
@@ -215,10 +211,10 @@
         }
 
         // ==========================================
-        // MICRÓFONO ETERNO Y ACUMULATIVO
+        // MICRÓFONO ETERNO (MODO CHAT REAL)
         // ==========================================
-        let smartRecognition = null;
-        let isSmartRecording = false;
+        let recognition = null;
+        let isRecording = false;
         let anchoredText = ""; 
 
         function toggleSmartDictation() {
@@ -226,109 +222,129 @@
             const iconEl = document.getElementById('mic-icon');
             const statusEl = document.getElementById('ai-status');
 
-            if (isSmartRecording) {
-                isSmartRecording = false;
-                if (smartRecognition) smartRecognition.stop();
-                iconEl.className = "fas fa-microphone";
+            if (isRecording) {
+                isRecording = false;
+                if (recognition) recognition.stop();
+                iconEl.className = "fas fa-microphone text-lg";
                 iconEl.classList.remove('mic-active');
-                if(inputEl.value.trim().length > 3) processWithIA(inputEl.value);
+                if(inputEl.value.trim().length > 3) processWithGroq(inputEl.value);
                 return;
             }
 
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) { statusEl.innerText = 'Navegador no soporta voz.'; statusEl.classList.remove('hidden'); return; }
+            if (!SpeechRecognition) { alert("Navegador no soporta voz."); return; }
             
-            smartRecognition = new SpeechRecognition();
-            smartRecognition.lang = 'es-ES';
-            smartRecognition.continuous = true;
-            smartRecognition.interimResults = true;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'es-ES';
+            recognition.continuous = true;
+            recognition.interimResults = true;
             
             anchoredText = inputEl.value;
 
-            smartRecognition.onstart = () => {
-                isSmartRecording = true;
-                iconEl.className = "fas fa-stop";
+            recognition.onstart = () => {
+                isRecording = true;
+                iconEl.className = "fas fa-stop text-lg";
                 iconEl.classList.add('mic-active');
                 statusEl.classList.remove('hidden');
-                document.getElementById('status-text').innerText = "Escuchando... No se borrará lo anterior.";
+                document.getElementById('status-text').innerText = "Escuchando... El texto se acumulará.";
+                document.getElementById('api-error-info').classList.add('hidden');
             };
 
-            smartRecognition.onresult = (event) => {
-                let sessionText = "";
+            recognition.onresult = (event) => {
+                let currentSessionText = "";
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    sessionText += event.results[i][0].transcript;
+                    currentSessionText += event.results[i][0].transcript;
                 }
-                inputEl.value = (anchoredText.trim() ? anchoredText.trim() + " " : "") + sessionText;
+                inputEl.value = (anchoredText.trim() ? anchoredText.trim() + " " : "") + currentSessionText;
                 inputEl.scrollTop = inputEl.scrollHeight;
             };
 
-            smartRecognition.onend = () => {
-                if (isSmartRecording) {
+            recognition.onend = () => {
+                if (isRecording) {
                     anchoredText = inputEl.value; 
-                    try { smartRecognition.start(); } catch(e){} 
+                    setTimeout(() => { try { recognition.start(); } catch(e){} }, 50);
                 }
             };
-            smartRecognition.start();
+            recognition.start();
         }
 
         // ==========================================
-        // RELLENADO CON IA (NUEVO MOTOR CON REINTENTOS)
+        // MOTOR DE IA: GROQ (LLAMA 3.1)
         // ==========================================
-        async function processWithIA(text) {
+        async function processWithGroq(text) {
             const statusEl = document.getElementById('ai-status');
             const statusText = document.getElementById('status-text');
+            const spinner = document.getElementById('ai-spinner');
+            const errorInfo = document.getElementById('api-error-info');
+
             statusEl.classList.remove('hidden');
-            statusText.innerText = "La IA está trabajando...";
+            errorInfo.classList.add('hidden');
+            statusText.innerText = "Groq analizando...";
+            spinner.className = "fas fa-bolt text-yellow-400 animate-pulse";
 
             const today = new Date();
-            const currentDateStr = today.toISOString().split('T')[0];
-            const prompt = `Extrae info de tarea del siguiente texto. Hoy es ${today.toDateString()}. Responde ÚNICAMENTE un objeto JSON válido con estas llaves: 
-            {"title": "resumen corto", "desc": "detalles extra", "category": "tipo", "priority": "Alta"|"Baja", "date": "YYYY-MM-DD", "time": "HH:MM"}.
-            Si dice "mañana", calcula la fecha real basándote en hoy. Si no dice hora usa "10:00". Texto: "${text}"`;
-
-            // Lógica de reintentos exponenciales
-            const callWithRetry = async (retries = 5, delay = 1000) => {
-                try {
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: prompt }] }],
-                            generationConfig: { responseMimeType: "application/json" }
-                        })
-                    });
-
-                    if (!response.ok) throw new Error("Status " + response.status);
-                    
-                    const result = await response.json();
-                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                    const data = JSON.parse(jsonText.replace(/```json/gi, '').replace(/```/g, '').trim());
-
-                    document.getElementById('task-title').value = data.title || "";
-                    document.getElementById('task-desc').value = data.desc || "";
-                    document.getElementById('task-cat').value = data.category || "General";
-                    document.getElementById('task-date').value = data.date || currentDateStr;
-                    document.getElementById('task-time').value = data.time || "10:00";
-                    document.getElementById('task-prio').value = (data.priority === "Alta") ? "Alta" : "Baja";
-
-                    statusText.innerText = "¡Campos rellenados!";
-                    setTimeout(() => statusEl.classList.add('hidden'), 3000);
-                } catch (e) {
-                    if (retries > 0) {
-                        statusText.innerText = `IA ocupada, reintentando (${retries})...`;
-                        await new Promise(r => setTimeout(r, delay));
-                        return callWithRetry(retries - 1, delay * 2);
-                    }
-                    throw e;
-                }
-            };
+            const todayStr = today.toISOString().split('T')[0];
+            
+            const prompt = `Extrae datos de tarea. Hoy es ${today.toDateString()}. Texto: "${text}". 
+            Responde exclusivamente un JSON: {"title": "título", "desc": "descripción", "category": "categoría", "priority": "Alta"|"Baja", "date": "YYYY-MM-DD", "time": "HH:MM"}`;
 
             try {
-                await callWithRetry();
+                // Cambiamos a un proxy más estable o intento directo (algunos navegadores lo permiten con Groq)
+                const apiUrl = "https://api.groq.com/openai/v1/chat/completions";
+                
+                // Usamos un proxy de respaldo en caso de fallo
+                const fetchIA = async (url) => {
+                    return await fetch(url, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${aiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: "llama-3.1-8b-instant",
+                            messages: [{ role: "user", content: prompt }],
+                            temperature: 0.1,
+                            response_format: { type: "json_object" }
+                        })
+                    });
+                };
+
+                let response;
+                try {
+                    // Intento 1: Directo (puede fallar por CORS)
+                    response = await fetchIA(apiUrl);
+                } catch(e) {
+                    // Intento 2: Proxy corsproxy.io
+                    console.log("Intento directo falló, usando proxy...");
+                    response = await fetchIA("https://corsproxy.io/?" + encodeURIComponent(apiUrl));
+                }
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error?.message || "Error del servidor de IA");
+                }
+
+                const result = await response.json();
+                const data = JSON.parse(result.choices[0].message.content);
+
+                // Llenado de campos
+                document.getElementById('task-title').value = data.title || "";
+                document.getElementById('task-desc').value = data.desc || "";
+                document.getElementById('task-cat').value = data.category || "General";
+                document.getElementById('task-date').value = data.date || todayStr;
+                document.getElementById('task-time').value = data.time || "10:00";
+                document.getElementById('task-prio').value = (data.priority === "Alta") ? "Alta" : "Baja";
+
+                statusText.innerText = "¡Campos rellenados con Groq!";
+                spinner.className = "fas fa-check-circle text-green-400";
+                setTimeout(() => statusEl.classList.add('hidden'), 3000);
+
             } catch (e) {
-                console.error(e);
-                statusText.innerText = "Falla temporal. Reintente pulsando el micro.";
+                console.error("Error Groq:", e);
+                statusText.innerText = "Fallo de comunicación";
+                spinner.className = "fas fa-times-circle text-red-400";
+                errorInfo.innerHTML = `<b>Error Técnico:</b> ${e.message}<br><br>Verifica que tu llave de Groq sea correcta y que no tengas bloqueadores de red activos.`;
+                errorInfo.classList.remove('hidden');
             }
         }
 
@@ -343,8 +359,8 @@
             document.getElementById('task-modal').classList.add('hidden');
             document.getElementById('new-task-form').reset();
             document.getElementById('ai-input').value = "";
-            if (smartRecognition) smartRecognition.stop();
-            isSmartRecording = false;
+            if (recognition) recognition.stop();
+            isRecording = false;
         }
 
         document.getElementById('new-task-form').addEventListener('submit', (e) => {
