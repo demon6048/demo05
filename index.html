@@ -16,9 +16,16 @@
         .task-card:hover { border-color: #4b5563; background-color: #242933; }
         .mic-active { color: #22d3ee !important; animation: pulse-cyan 1.5s infinite; }
         @keyframes pulse-cyan { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.15); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
+        #loading-overlay { backdrop-filter: blur(4px); }
     </style>
 </head>
 <body class="bg-[#0f1115] text-slate-200 font-sans h-screen flex flex-col overflow-hidden selection:bg-blue-500/30 text-left">
+
+    <!-- OVERLAY DE CARGA -->
+    <div id="loading-overlay" class="fixed inset-0 bg-[#0f1115]/80 z-50 flex flex-col justify-center items-center">
+        <div class="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-cyan-400 font-bold tracking-widest uppercase text-sm animate-pulse">Sincronizando con Google Sheets...</p>
+    </div>
 
     <!-- CABECERA -->
     <header class="bg-[#161b22] border-b border-gray-800 p-4 md:px-6 md:py-4 shadow-md z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -129,10 +136,13 @@
     </div>
 
     <script>
-        // --- API KEY DE GROQ ---
+        // --- CONFIGURACIÓN ---
         const aiKey = "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"; 
+        const googleSheetUrl = "https://script.google.com/macros/s/AKfycbxrXvFXX12zA76XRhUabS1a_FpW1sRT6p3tOnT4ngS5nzYWn0bzAPZizp3-oTNaXQZG/exec";
 
-        let tasks = [];
+        // Tareas locales
+        let tasks = JSON.parse(localStorage.getItem('kanban_tasks')) || [];
+
         const COLUMNS = [
             { id: 'Prioridad Alta', title: '🔥 PRIORIDAD ALTA', bg: 'bg-[#1f1616]' },
             { id: 'En Proceso', title: '⚙️ EN PROCESO', bg: 'bg-[#161c22]' },
@@ -140,6 +150,48 @@
             { id: 'Completadas', title: '✅ COMPLETADAS', bg: 'bg-[#161f18]' }
         ];
 
+        // ==========================================
+        // CONEXIÓN CON GOOGLE SHEETS (SINCRONIZACIÓN)
+        // ==========================================
+        async function fetchTasksFromSheets() {
+            try {
+                // Descargar información desde Sheets
+                const response = await fetch(googleSheetUrl);
+                const data = await response.json();
+                
+                // Si la respuesta es un arreglo, actualizar el estado
+                if(Array.isArray(data)) {
+                    tasks = data;
+                    saveTasks(); // Guardar copia local de seguridad
+                }
+            } catch (error) {
+                console.error("Error al cargar desde Google Sheets (usando caché local):", error);
+            } finally {
+                // Ocultar pantalla de carga e inicializar panel
+                document.getElementById('loading-overlay').style.display = 'none';
+                renderBoard();
+            }
+        }
+
+        function sendToGoogleSheets(taskData) {
+            // Se envía en background (no bloquea al usuario)
+            fetch(googleSheetUrl, {
+                method: 'POST',
+                mode: 'no-cors', // Fundamental para Google Apps Script
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(taskData)
+            }).then(() => {
+                console.log("Cambio sincronizado con éxito.");
+            }).catch(console.error);
+        }
+
+        function saveTasks() {
+            localStorage.setItem('kanban_tasks', JSON.stringify(tasks));
+        }
+
+        // ==========================================
+        // UI Y RELOJ
+        // ==========================================
         function updateClock() {
             const now = new Date();
             document.getElementById('current-time').innerText = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -164,17 +216,26 @@
                         <span class="bg-[#0f1115] text-slate-400 text-[10px] px-2 py-0.5 rounded font-bold border border-gray-800">${colTasks.length}</span>
                     </div>
                     <div class="p-2 md:p-3 flex flex-col gap-2 min-h-[50px] bg-[#161b22]">`;
-                if (colTasks.length === 0) colHTML += `<div class="h-8 flex items-center justify-center text-[10px] text-slate-600 uppercase tracking-tighter italic w-full text-center">Vacio</div>`;
+                
+                if (colTasks.length === 0) {
+                    colHTML += `<div class="h-8 flex items-center justify-center text-[10px] text-slate-600 uppercase tracking-tighter italic w-full text-center">Vacio</div>`;
+                }
+
                 colTasks.forEach(task => {
                     const statusColor = task.progress === 100 ? 'bg-green-500' : 'bg-cyan-500';
-                    colHTML += `<div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-[#1c212b] border border-gray-800 rounded-lg p-3 relative task-card">
+                    colHTML += `<div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-[#1c212b] border border-gray-800 rounded-lg p-3 relative task-card group">
+                        
+                        <button onclick="deleteTask('${task.id}')" class="absolute top-2 right-2 text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-10" title="Eliminar Tarea">
+                            <i class="fas fa-trash text-xs"></i>
+                        </button>
+
                         <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg ${task.priority === 'Alta' ? 'bg-red-500' : 'bg-cyan-500'}"></div>
                         <div class="flex-1 pl-2 w-full md:w-auto min-w-0 text-left">
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="text-[9px] font-bold uppercase text-slate-300 bg-[#0f1115] px-1.5 py-0.5 rounded border border-gray-800/50">${task.category}</span>
                                 <span class="text-[9px] font-bold uppercase ${task.priority === 'Alta' ? 'text-red-400' : 'text-cyan-400'}">${task.priority}</span>
                             </div>
-                            <h3 class="font-bold text-white text-base md:text-[17px] truncate text-left">${task.title}</h3>
+                            <h3 class="font-bold text-white text-base md:text-[17px] truncate pr-6 text-left">${task.title}</h3>
                             <p class="text-[10px] text-slate-400 truncate text-left">${task.desc || '...'}</p>
                         </div>
                         <div class="bg-[#0f1115] p-2 rounded-md flex flex-row md:flex-col items-center justify-center gap-3 md:gap-0.5 border border-gray-800 min-w-[120px] shrink-0 text-center text-xs">
@@ -205,8 +266,23 @@
             if(task) {
                 task.progress = val;
                 if(val === 100) task.status = 'Completadas';
+                else if(task.priority === 'Alta') task.status = 'Prioridad Alta'; 
                 else if(val > 0) task.status = 'En Proceso';
+                else task.status = 'Pendientes';
+                
+                saveTasks();
                 renderBoard();
+                sendToGoogleSheets(task); // Sincroniza la actualización
+            }
+        }
+
+        function deleteTask(id) {
+            if(confirm("¿Estás seguro de eliminar esta tarea?")) {
+                tasks = tasks.filter(t => t.id !== id);
+                saveTasks();
+                renderBoard();
+                // Sincroniza la eliminación informando a Google Sheets
+                sendToGoogleSheets({ id: id, action: 'delete' });
             }
         }
 
@@ -227,20 +303,18 @@
                 if (recognition) recognition.stop();
                 iconEl.className = "fas fa-microphone text-lg";
                 iconEl.classList.remove('mic-active');
-                // Al detener, procesamos todo el acumulado con Groq
                 if(inputEl.value.trim().length > 3) processWithGroq(inputEl.value);
                 return;
             }
 
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) { alert("Navegador no soporta voz."); return; }
+            if (!SpeechRecognition) { alert("Tu navegador no soporta la API de voz. Te sugerimos usar Chrome o Edge."); return; }
             
             recognition = new SpeechRecognition();
             recognition.lang = 'es-ES';
             recognition.continuous = true;
             recognition.interimResults = true;
             
-            // Sincronizar historia con lo que ya está escrito manualmente
             finalHistory = inputEl.value;
 
             recognition.onstart = () => {
@@ -274,7 +348,6 @@
             };
 
             recognition.onend = () => {
-                // REINICIO AUTOMÁTICO INMEDIATO (LO HACE ETERNO)
                 if (isRecording) {
                     try { recognition.start(); } catch(e){} 
                 }
@@ -283,7 +356,7 @@
         }
 
         // ==========================================
-        // MOTOR DE IA: GROQ (CONEXIÓN ROBUSTA)
+        // MOTOR DE IA: GROQ
         // ==========================================
         async function processWithGroq(text) {
             const statusEl = document.getElementById('ai-status');
@@ -302,12 +375,11 @@
             const prompt = `Actúa como un extractor de datos profesional. Analiza el siguiente texto y devuelve un objeto JSON en español. 
             Texto: "${text}". 
             Fecha de hoy: ${todayStr}.
-            FORMATO: {"title": "resumen", "desc": "detalles", "category": "tipo", "priority": "Alta"|"Baja", "date": "YYYY-MM-DD", "time": "HH:MM"}`;
+            FORMATO ESTRICTO DE SALIDA (sin texto adicional): {"title": "resumen corto", "desc": "detalles", "category": "tipo general", "priority": "Alta" o "Baja", "date": "YYYY-MM-DD", "time": "HH:MM"}`;
 
             try {
                 const apiUrl = "https://api.groq.com/openai/v1/chat/completions";
                 
-                // Sistema de respaldo con proxy si falla directo
                 const tryFetch = async (url) => {
                     return await fetch(url, {
                         method: 'POST',
@@ -331,7 +403,6 @@
                 try {
                     response = await tryFetch(apiUrl);
                 } catch(e) {
-                    // Si falla por CORS, intentamos con el proxy
                     response = await tryFetch("https://corsproxy.io/?" + encodeURIComponent(apiUrl));
                 }
 
@@ -343,7 +414,6 @@
                 const result = await response.json();
                 const data = JSON.parse(result.choices[0].message.content);
 
-                // --- LLENADO DE CAMPOS ---
                 document.getElementById('task-title').value = data.title || "";
                 document.getElementById('task-desc').value = data.desc || "";
                 document.getElementById('task-cat').value = data.category || "General";
@@ -395,11 +465,19 @@
                 time: document.getElementById('task-time').value
             };
             tasks.push(newTask);
+            saveTasks();
             renderBoard();
             closeModal();
+            
+            // Sincroniza creación
+            sendToGoogleSheets(newTask);
         });
 
+        // INICIO DE LA APLICACIÓN
+        // Primero pinta lo que hay en caché, luego sincroniza con Sheets
         renderBoard();
+        fetchTasksFromSheets();
+
     </script>
 </body>
 </html>
