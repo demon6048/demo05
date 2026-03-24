@@ -161,7 +161,20 @@
                 
                 // Si la respuesta es un arreglo, actualizar el estado
                 if(Array.isArray(data)) {
-                    tasks = data;
+                    // BLINDAJE: Limpiar y adaptar las fechas y horas que vienen de Google Sheets
+                    tasks = data.map(task => {
+                        // Cortar texto extra de la fecha (de "2024-10-25T05:00.000Z" a "2024-10-25")
+                        if (task.date && task.date.includes('T')) {
+                            task.date = task.date.split('T')[0];
+                        }
+                        // Cortar texto extra de la hora (de "1899-12-30T14:30.000Z" a "14:30")
+                        if (task.time && task.time.includes('T')) {
+                            task.time = task.time.split('T')[1].substring(0, 5);
+                        } else if (task.time && task.time.length > 5) {
+                            task.time = task.time.substring(0, 5);
+                        }
+                        return task;
+                    });
                     saveTasks(); // Guardar copia local de seguridad
                 }
             } catch (error) {
@@ -324,6 +337,7 @@
                 statusEl.classList.remove('hidden');
                 document.getElementById('status-text').innerText = "Escuchando... El texto se acumulará.";
                 document.getElementById('api-error-info').classList.add('hidden');
+                window.lastConfirmedPhrase = ""; // BLINDAJE: Resetear filtro de duplicados
             };
 
             recognition.onresult = (event) => {
@@ -340,7 +354,11 @@
                 }
                 
                 if (confirmedThisSession) {
-                    finalHistory = (finalHistory.trim() ? finalHistory.trim() + " " : "") + confirmedThisSession;
+                    // BLINDAJE: Filtro inteligente para evitar texto duplicado en celulares
+                    if (window.lastConfirmedPhrase !== confirmedThisSession) {
+                        finalHistory = (finalHistory.trim() ? finalHistory.trim() + " " : "") + confirmedThisSession;
+                        window.lastConfirmedPhrase = confirmedThisSession;
+                    }
                 }
 
                 inputEl.value = (finalHistory + interimTranscript).trim();
