@@ -53,10 +53,22 @@
                 </div>
             </div>
         </div>
-        <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-            <div class="text-xl md:text-2xl font-mono font-bold tracking-widest text-white bg-[#0f1115] px-4 py-1.5 rounded-lg border border-gray-800 hidden sm:block" id="current-time">00:00:00</div>
-            <button onclick="openModal()" class="flex-1 md:flex-none flex justify-center items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 md:py-2.5 rounded-md font-bold transition-all text-sm shadow-md active:scale-95">
-                <i class="fas fa-plus"></i><span>Nueva Tarea</span>
+        <div class="flex items-center gap-2 md:gap-3 w-full md:w-auto justify-between md:justify-end">
+            <div class="text-xl md:text-2xl font-mono font-bold tracking-widest text-white bg-[#0f1115] px-4 py-1.5 rounded-lg border border-gray-800 hidden lg:block" id="current-time">00:00:00</div>
+            
+            <!-- BOTÓN SINCRONIZAR MANUAL -->
+            <button onclick="manualSync()" class="flex justify-center items-center w-10 h-10 md:w-auto md:px-3 md:py-2.5 bg-[#1e293b] hover:bg-[#334155] border border-blue-500/30 text-blue-400 rounded-md transition-all shadow-md active:scale-95" title="Sincronizar ahora">
+                <i class="fas fa-sync-alt" id="sync-icon"></i><span class="hidden md:inline ml-2 text-sm font-bold">Sync</span>
+            </button>
+
+            <!-- BOTÓN PANTALLA COMPLETA -->
+            <button onclick="toggleFullScreen()" id="btn-fullscreen" class="flex justify-center items-center w-10 h-10 md:w-auto md:px-3 md:py-2.5 bg-gray-800 hover:bg-gray-700 text-slate-300 rounded-md transition-all shadow-md active:scale-95" title="Pantalla Completa">
+                <i class="fas fa-expand"></i>
+            </button>
+
+            <!-- BOTÓN NUEVA TAREA -->
+            <button onclick="openModal()" class="flex-1 md:flex-none flex justify-center items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 md:py-2.5 rounded-md font-bold transition-all text-sm shadow-md active:scale-95 whitespace-nowrap">
+                <i class="fas fa-plus"></i><span class="hidden sm:inline">Nueva Tarea</span><span class="sm:hidden">Nueva</span>
             </button>
         </div>
     </header>
@@ -205,6 +217,29 @@
         // ==========================================
         // UI Y RELOJ
         // ==========================================
+        function manualSync() {
+            const icon = document.getElementById('sync-icon');
+            if(icon) icon.classList.add('animate-spin'); // Hace girar el icono
+            document.getElementById('loading-overlay').style.display = 'flex';
+            
+            fetchTasksFromSheets().finally(() => {
+                if(icon) icon.classList.remove('animate-spin'); // Detiene el giro al terminar
+            });
+        }
+
+        function toggleFullScreen() {
+            const icon = document.querySelector('#btn-fullscreen i');
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(e => console.error(e));
+                if(icon) { icon.classList.remove('fa-expand'); icon.classList.add('fa-compress'); }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                    if(icon) { icon.classList.remove('fa-compress'); icon.classList.add('fa-expand'); }
+                }
+            }
+        }
+
         function updateClock() {
             const now = new Date();
             document.getElementById('current-time').innerText = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
