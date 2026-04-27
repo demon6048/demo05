@@ -37,12 +37,14 @@
             <div class="flex flex-col">
                 <h1 class="text-xl md:text-[22px] font-bold tracking-tight text-white flex items-center gap-2 text-left">
                     <div class="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-pulse"></div>
-                    Centro de Control Diario
+                    Centro de Control
                 </h1>
                 <p class="text-slate-400 text-[11px] md:text-xs capitalize mt-0.5 text-left" id="current-date"></p>
             </div>
             <div class="hidden md:block w-px h-10 bg-gray-700"></div>
-            <div class="flex gap-6 md:gap-8 w-full md:w-auto justify-around md:justify-start border-t md:border-t-0 border-gray-800 pt-3 md:pt-0 text-center">
+            
+            <!-- ESTADÍSTICAS (SE OCULTAN EN MODO COMPRAS) -->
+            <div id="stats-container" class="flex gap-6 md:gap-8 w-full md:w-auto justify-around md:justify-start border-t md:border-t-0 border-gray-800 pt-3 md:pt-0 text-center transition-all">
                 <div class="flex flex-col items-center">
                     <span class="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Pendientes</span>
                     <span class="text-lg md:text-xl font-bold text-red-500 leading-none" id="stat-pending">0</span>
@@ -77,12 +79,22 @@
 
             <!-- BOTÓN NUEVA TAREA -->
             <button onclick="openModal()" class="flex-1 md:flex-none flex justify-center items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 md:py-2.5 rounded-md font-bold transition-all text-sm shadow-md active:scale-95 whitespace-nowrap">
-                <i class="fas fa-plus"></i><span class="hidden sm:inline">Nueva Tarea</span><span class="sm:hidden">Nueva</span>
+                <i class="fas fa-plus"></i><span class="hidden sm:inline">Nuevo</span>
             </button>
         </div>
     </header>
 
-    <main class="flex-1 overflow-x-hidden overflow-y-auto p-3 md:p-6 custom-scrollbar">
+    <!-- NAVEGACIÓN DE PESTAÑAS (NUEVO) -->
+    <div class="bg-[#161b22] border-b border-gray-800 flex px-2 md:px-6 overflow-x-auto custom-scrollbar">
+        <button onclick="switchView('dashboard')" id="tab-dashboard" class="px-5 py-3 text-sm font-bold border-b-2 border-cyan-500 text-cyan-400 transition-colors flex items-center gap-2 whitespace-nowrap">
+            <i class="fas fa-tasks"></i> Tablero Principal
+        </button>
+        <button onclick="switchView('shopping')" id="tab-shopping" class="px-5 py-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap">
+            <i class="fas fa-shopping-cart"></i> Lista de Compras
+        </button>
+    </div>
+
+    <main class="flex-1 overflow-x-hidden overflow-y-auto p-3 md:p-6 custom-scrollbar bg-[#0f1115]">
         <div class="flex flex-col gap-4 md:gap-5 w-full max-w-[1300px] mx-auto pb-10" id="kanban-board"></div>
     </main>
 
@@ -119,7 +131,7 @@
                 <button onclick="closeModal()" class="text-slate-400 hover:text-white p-1 transition-colors"><i class="fas fa-times text-xl"></i></button>
             </div>
 
-            <!-- ASISTENTE DE VOZ (RESTAURADO Y MEJORADO) -->
+            <!-- ASISTENTE DE VOZ -->
             <div class="mb-5 p-4 bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-500/30 rounded-xl relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-500 to-blue-500"></div>
                 <label class="block text-sm font-bold text-cyan-400 mb-1 flex items-center gap-2 uppercase tracking-tighter">
@@ -138,7 +150,7 @@
                         <i class="fas fa-bolt animate-pulse text-yellow-400" id="ai-spinner"></i> <span id="status-text">Escuchando...</span>
                     </div>
                     <div id="api-error-info" class="text-[9px] text-red-400 italic hidden border-t border-red-900/30 pt-1 mt-1"></div>
-                <button type="button" onclick="closeModal()" class="text-slate-400 hover:text-white p-1 transition-colors"><i class="fas fa-times text-xl"></i></button>
+                </div>
             </div>
 
             <form id="new-task-form" class="space-y-4 md:space-y-5">
@@ -181,15 +193,16 @@
     </div>
 
     <script>
+        // --- ESTADO DE LA VISTA ---
+        let currentView = 'dashboard'; // Puede ser 'dashboard' o 'shopping'
+
         // --- CONFIGURACIÓN DINÁMICA ---
-        // Se cargan los valores desde LocalStorage, de lo contrario se usan los que dejamos por defecto.
         let aiKey = localStorage.getItem('app_gemini_key') || "AIzaSyAS994jGxpb0-X9S6pnuC5BDhrRaGiMBEo"; 
         let googleSheetUrl = localStorage.getItem('app_sheet_url') || "https://script.google.com/macros/s/AKfycbxrXvFXX12zA76XRhUabS1a_FpW1sRT6p3tOnT4ngS5nzYWn0bzAPZizp3-oTNaXQZG/exec";
 
         // Funciones del Modal de Configuración
         function openConfigModal() {
             document.getElementById('config-modal').classList.remove('hidden');
-            // Ocultamos parcialmente la llave si ya existe para que no se lea a simple vista
             document.getElementById('config-api-key').value = localStorage.getItem('app_gemini_key') || "";
             document.getElementById('config-sheet-url').value = googleSheetUrl;
         }
@@ -215,13 +228,12 @@
             }
             
             closeConfigModal();
-            manualSync(); // Resincronizamos con el nuevo sheet por si acaso
+            manualSync(); 
         }
 
         // Tareas locales
         let tasks = JSON.parse(localStorage.getItem('kanban_tasks')) || [];
 
-        // NUEVO: Agregada la columna de Compras
         const COLUMNS = [
             { id: 'Prioridad Alta', title: '🔥 PRIORIDAD ALTA', bg: 'bg-[#1f1616]' },
             { id: 'En Proceso', title: '⚙️ EN PROCESO', bg: 'bg-[#161c22]' },
@@ -231,7 +243,29 @@
         ];
 
         // ==========================================
-        // CONEXIÓN CON GOOGLE SHEETS (SINCRONIZACIÓN)
+        // SISTEMA DE PESTAÑAS (VISTAS)
+        // ==========================================
+        function switchView(view) {
+            currentView = view;
+            const tabDash = document.getElementById('tab-dashboard');
+            const tabShop = document.getElementById('tab-shopping');
+            const statsContainer = document.getElementById('stats-container');
+            
+            if (view === 'dashboard') {
+                tabDash.className = "px-5 py-3 text-sm font-bold border-b-2 border-cyan-500 text-cyan-400 transition-colors flex items-center gap-2 whitespace-nowrap bg-[#0f1115]";
+                tabShop.className = "px-5 py-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap";
+                statsContainer.style.display = 'flex'; // Mostrar estadísticas
+            } else {
+                tabShop.className = "px-5 py-3 text-sm font-bold border-b-2 border-purple-500 text-purple-400 transition-colors flex items-center gap-2 whitespace-nowrap bg-[#0f1115]";
+                tabDash.className = "px-5 py-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap";
+                statsContainer.style.display = 'none'; // Ocultar estadísticas en compras
+            }
+            
+            renderBoard();
+        }
+
+        // ==========================================
+        // CONEXIÓN CON GOOGLE SHEETS
         // ==========================================
         async function fetchTasksFromSheets() {
             try {
@@ -308,15 +342,25 @@
             const board = document.getElementById('kanban-board');
             if(!board) return;
             board.innerHTML = '';
-            document.getElementById('stat-pending').innerText = tasks.filter(t => t.status === 'Pendientes' || t.status === 'Prioridad Alta' || t.status === 'Compras').length;
+            
+            // Actualizar estadísticas (Solo cuentan las tareas, no las compras)
+            document.getElementById('stat-pending').innerText = tasks.filter(t => t.status === 'Pendientes' || t.status === 'Prioridad Alta').length;
             document.getElementById('stat-progress').innerText = tasks.filter(t => t.status === 'En Proceso').length;
-            document.getElementById('stat-completed').innerText = tasks.filter(t => t.status === 'Completadas').length;
+            document.getElementById('stat-completed').innerText = tasks.filter(t => t.status === 'Completadas' && t.category !== 'Compras').length;
 
-            COLUMNS.forEach(col => {
+            // Filtrar las columnas que se van a mostrar dependiendo de la pestaña activa
+            let visibleColumns = [];
+            if (currentView === 'dashboard') {
+                visibleColumns = COLUMNS.filter(c => c.id !== 'Compras'); // Todas menos compras
+            } else {
+                visibleColumns = COLUMNS.filter(c => c.id === 'Compras'); // SOLO compras
+            }
+
+            visibleColumns.forEach(col => {
                 const colTasks = tasks.filter(t => t.status === col.id);
                 let colHTML = `<div class="w-full flex flex-col bg-[#161b22] border border-gray-800 rounded-xl overflow-hidden shadow-lg mb-4 text-left font-semibold">
                     <div class="p-3 border-b border-gray-800 flex justify-between items-center ${col.bg}">
-                        <h2 class="font-bold text-[10px] md:text-[11px] tracking-widest text-slate-200 uppercase">${col.title}</h2>
+                        <h2 class="font-bold text-[10px] md:text-[11px] tracking-widest text-slate-200 uppercase">${currentView === 'shopping' ? '🛒 TU LISTA DE COMPRAS' : col.title}</h2>
                         <span class="bg-[#0f1115] text-slate-400 text-[10px] px-2 py-0.5 rounded font-bold border border-gray-800">${colTasks.length}</span>
                     </div>
                     <div class="p-2 md:p-3 flex flex-col gap-2 min-h-[50px] bg-[#161b22]">`;
@@ -327,22 +371,23 @@
 
                 colTasks.forEach(task => {
                     const statusColor = task.progress === 100 ? 'bg-green-500' : (task.category === 'Compras' ? 'bg-purple-500' : 'bg-cyan-500');
-                    const isCompra = task.category === 'Compras';
+                    const isCompra = task.category === 'Compras' || task.status === 'Compras';
                     
                     colHTML += `<div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-[#1c212b] border border-gray-800 rounded-lg p-3 relative task-card group">
                         
-                        <button onclick="deleteTask('${task.id}')" class="absolute top-2 right-2 text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-10" title="Eliminar">
+                        <!-- BOTÓN ELIMINAR MEJORADO: Siempre visible, rojo sutil -->
+                        <button onclick="deleteTask('${task.id}')" class="absolute top-2 right-2 flex items-center justify-center w-7 h-7 text-gray-500 hover:text-red-400 bg-[#0f1115] border border-gray-700 hover:border-red-500/50 rounded transition-all z-10 shadow-sm" title="Eliminar">
                             <i class="fas fa-trash text-xs"></i>
                         </button>
 
                         <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg ${task.priority === 'Alta' ? 'bg-red-500' : (isCompra ? 'bg-purple-500' : 'bg-cyan-500')}"></div>
-                        <div class="flex-1 pl-2 w-full md:w-auto min-w-0 text-left">
+                        <div class="flex-1 pl-2 pr-8 w-full md:w-auto min-w-0 text-left">
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="text-[9px] font-bold uppercase text-slate-300 bg-[#0f1115] px-1.5 py-0.5 rounded border border-gray-800/50">${task.category}</span>
                                 <span class="text-[9px] font-bold uppercase ${task.priority === 'Alta' ? 'text-red-400' : (isCompra ? 'text-purple-400' : 'text-cyan-400')}">${task.priority}</span>
                             </div>
-                            <h3 class="font-bold text-white text-base md:text-[17px] truncate pr-6 text-left">${task.title}</h3>
-                            ${task.desc ? `<p class="text-[10px] text-slate-400 truncate text-left">${task.desc}</p>` : ''}
+                            <h3 class="font-bold text-white text-base md:text-[17px] truncate text-left ${task.progress === 100 && isCompra ? 'line-through text-slate-500' : ''}">${task.title}</h3>
+                            ${task.desc ? `<p class="text-[10px] text-slate-400 truncate text-left mt-0.5">${task.desc}</p>` : ''}
                         </div>
                         <div class="bg-[#0f1115] p-2 rounded-md flex flex-row md:flex-col items-center justify-center gap-3 md:gap-0.5 border border-gray-800 min-w-[120px] shrink-0 text-center text-xs hidden md:flex">
                             <div class="text-slate-400 font-semibold">${task.date}</div>
@@ -358,7 +403,9 @@
                             </div>
                             <div class="flex gap-1">
                                 ${isCompra 
-                                    ? `<button onclick="updateTaskProgress('${task.id}', 100)" class="flex-1 bg-transparent hover:bg-gray-800 border border-purple-900/50 text-[9px] py-1 rounded text-purple-400 transition-colors font-bold">Marcar como Comprado ✅</button>`
+                                    ? (task.progress === 100 
+                                        ? `<button onclick="updateTaskProgress('${task.id}', 0)" class="flex-1 bg-purple-900/30 hover:bg-purple-900/50 border border-purple-500 text-[9px] py-1 rounded text-purple-200 transition-colors font-bold">✓ ¡Comprado! (Deshacer)</button>`
+                                        : `<button onclick="updateTaskProgress('${task.id}', 100)" class="flex-1 bg-transparent hover:bg-purple-900/20 border border-purple-900/50 text-[9px] py-1 rounded text-purple-400 transition-colors font-bold">Marcar como Comprado</button>`)
                                     : [10, 25, 50, 75, 100].map(v => `<button onclick="updateTaskProgress('${task.id}', ${v})" class="flex-1 bg-transparent hover:bg-gray-800 border border-gray-700 text-[9px] py-1 rounded text-slate-400 transition-colors font-bold">${v === 100 ? 'Fin' : v+'%'}</button>`).join('')
                                 }
                             </div>
@@ -373,12 +420,17 @@
         function updateTaskProgress(id, val) {
             const task = tasks.find(t => t.id === id);
             if(task) {
-                task.progress = val;
-                if(val === 100) task.status = 'Completadas';
-                else if(task.priority === 'Alta') task.status = 'Prioridad Alta'; 
-                else if(task.category === 'Compras') task.status = 'Compras'; // Se queda en compras
-                else if(val > 0) task.status = 'En Proceso';
-                else task.status = 'Pendientes';
+                // Si es de categoría Compras, NUNCA abandona la columna de compras.
+                if(task.category === 'Compras' || task.status === 'Compras') {
+                    task.progress = val;
+                    task.status = 'Compras'; 
+                } else {
+                    task.progress = val;
+                    if(val === 100) task.status = 'Completadas';
+                    else if(task.priority === 'Alta') task.status = 'Prioridad Alta'; 
+                    else if(val > 0) task.status = 'En Proceso';
+                    else task.status = 'Pendientes';
+                }
                 
                 saveTasks();
                 renderBoard();
@@ -407,12 +459,10 @@
             const catContainer = document.getElementById('category-container');
             const titleLabel = document.getElementById('label-title');
             
-            // Estilos por defecto
             [btnNormal, btnUrgente, btnCompra].forEach(btn => {
                 btn.className = "flex-1 py-2.5 rounded border border-gray-700 bg-[#0f1115] hover:bg-gray-800 text-gray-400 text-xs font-bold transition-all";
             });
             
-            // Activar el seleccionado
             if (type === 'normal') {
                 btnNormal.className = "flex-1 py-2.5 rounded border border-cyan-500 bg-cyan-500/20 text-cyan-300 text-xs font-bold transition-all shadow-inner";
                 catContainer.style.display = 'block';
@@ -423,7 +473,7 @@
                 titleLabel.innerText = "Tarea Urgente";
             } else if (type === 'compra') {
                 btnCompra.className = "flex-1 py-2.5 rounded border border-purple-500 bg-purple-500/20 text-purple-300 text-xs font-bold transition-all shadow-inner";
-                catContainer.style.display = 'none'; // Escondemos categoría porque ya sabemos que es una compra
+                catContainer.style.display = 'none'; 
                 titleLabel.innerText = "Artículo a Comprar";
             }
             
@@ -431,7 +481,7 @@
         }
 
         // ==========================================
-        // MICRÓFONO INMORTAL Y ACUMULATIVO (RESTAURADO)
+        // MICRÓFONO INMORTAL Y ACUMULATIVO
         // ==========================================
         let recognition = null;
         let isRecording = false;
@@ -504,7 +554,7 @@
         }
 
         // ==========================================
-        // MOTOR DE IA: GOOGLE GEMINI (ROBUSTO Y SEGURO)
+        // MOTOR DE IA: GOOGLE GEMINI
         // ==========================================
         async function processWithGemini(text) {
             const statusEl = document.getElementById('ai-status');
@@ -518,7 +568,6 @@
             spinner.className = "fas fa-bolt animate-pulse text-yellow-400";
 
             if (!aiKey) {
-                // SISTEMA DE RESCATE SI NO HAY CLAVE
                 document.getElementById('task-title').value = text;
                 setTaskType('normal');
                 statusText.innerText = "Texto pegado sin IA";
@@ -533,7 +582,6 @@ Texto: "${text}".
 Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen muy corto", "desc": "detalles completos", "category": "Compras" o "General", "priority": "Alta" o "Baja"}`;
 
             try {
-                // Petición a Google Gemini API
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${aiKey}`;
                 
                 const response = await fetch(apiUrl, {
@@ -552,16 +600,12 @@ Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen 
                 const result = await response.json();
                 let rawContent = result.candidates[0].content.parts[0].text;
                 
-                // BLINDAJE: Limpiar el texto en caso de que la IA responda con bloques de código
                 rawContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
-                
                 const data = JSON.parse(rawContent);
 
-                // Llenar campos
                 document.getElementById('task-title').value = data.title || "";
                 document.getElementById('task-desc').value = data.desc || "";
                 
-                // Activar automáticamente el botón rápido correcto
                 if (data.category && data.category.toLowerCase().includes("compra")) {
                     setTaskType('compra');
                 } else if (data.priority === "Alta") {
@@ -578,7 +622,6 @@ Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen 
             } catch (e) {
                 console.error("Error Gemini:", e);
                 
-                // SISTEMA DE RESCATE
                 document.getElementById('task-title').value = text;
                 setTaskType('normal');
                 
@@ -597,7 +640,14 @@ Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen 
 
         function openModal() {
             document.getElementById('task-modal').classList.remove('hidden');
-            setTaskType('normal'); // Por defecto abre en normal
+            
+            // Si estaba en la pestaña de compras, que el formulario abra pre-seleccionado en Compras
+            if (currentView === 'shopping') {
+                setTaskType('compra');
+            } else {
+                setTaskType('normal'); 
+            }
+            
             setTimeout(() => document.getElementById('task-title').focus(), 100);
         }
 
@@ -605,7 +655,6 @@ Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen 
             document.getElementById('task-modal').classList.add('hidden');
             document.getElementById('new-task-form').reset();
             
-            // Restaurado: Apagar micrófono y resetear valores de IA
             document.getElementById('ai-input').value = "";
             finalHistory = ""; 
             if (recognition) recognition.stop();
@@ -625,12 +674,11 @@ Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen 
             let status = 'Pendientes';
             let cat = document.getElementById('task-cat').value;
             
-            // Lógica según el botón rápido seleccionado
             if (type === 'urgente') {
                 prio = 'Alta';
                 status = 'Prioridad Alta';
             } else if (type === 'compra') {
-                prio = 'Baja'; // Las compras no urgen tanto por defecto
+                prio = 'Baja'; 
                 status = 'Compras';
                 cat = 'Compras';
             }
@@ -645,21 +693,26 @@ Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen 
                 priority: prio,
                 status: status,
                 progress: 0,
-                // Fechas automáticas!
                 date: now.toISOString().split('T')[0],
                 time: now.toTimeString().slice(0,5)
             };
             
             tasks.push(newTask);
             saveTasks();
-            renderBoard();
-            closeModal();
             
+            // Si creó una compra, saltar automáticamente a la pestaña de compras para que la vea
+            if (type === 'compra' && currentView !== 'shopping') {
+                switchView('shopping');
+            } else {
+                renderBoard();
+            }
+            
+            closeModal();
             sendToGoogleSheets(newTask);
         });
 
         // INICIO DE LA APLICACIÓN
-        renderBoard();
+        switchView('dashboard'); // Pestaña inicial
         fetchTasksFromSheets();
 
     </script>
