@@ -84,13 +84,16 @@
         </div>
     </header>
 
-    <!-- NAVEGACIÓN DE PESTAÑAS (NUEVO) -->
+    <!-- NAVEGACIÓN DE PESTAÑAS -->
     <div class="bg-[#161b22] border-b border-gray-800 flex px-2 md:px-6 overflow-x-auto custom-scrollbar">
-        <button onclick="switchView('dashboard')" id="tab-dashboard" class="px-5 py-3 text-sm font-bold border-b-2 border-cyan-500 text-cyan-400 transition-colors flex items-center gap-2 whitespace-nowrap">
+        <button onclick="switchView('dashboard')" id="tab-dashboard" class="px-5 py-3 text-sm font-bold border-b-2 border-cyan-500 text-cyan-400 transition-colors flex items-center gap-2 whitespace-nowrap bg-[#0f1115]">
             <i class="fas fa-tasks"></i> Tablero Principal
         </button>
         <button onclick="switchView('shopping')" id="tab-shopping" class="px-5 py-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap">
             <i class="fas fa-shopping-cart"></i> Lista de Compras
+        </button>
+        <button onclick="switchView('completed')" id="tab-completed" class="px-5 py-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap">
+            <i class="fas fa-check-double"></i> Completadas
         </button>
     </div>
 
@@ -120,6 +123,27 @@
                     <button onclick="saveConfig()" class="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg shadow-lg active:scale-95 transition-all">Guardar Cambios</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL OBSERVACIÓN -->
+    <div id="obs-modal" class="fixed inset-0 bg-black/80 hidden z-50 flex justify-center items-center backdrop-blur-sm p-4 text-left">
+        <div class="bg-[#161b22] border border-gray-700 rounded-xl w-full max-w-lg p-5 md:p-6 shadow-2xl transform transition-all my-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg md:text-xl font-bold text-white uppercase tracking-widest text-xs">📝 Añadir Observación</h2>
+                <button onclick="closeObsModal()" class="text-slate-400 hover:text-white p-1 transition-colors"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <form id="obs-form" class="space-y-4">
+                <input type="hidden" id="obs-task-id">
+                <div>
+                    <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider text-[10px]" id="obs-task-title">Tarea</label>
+                    <textarea id="obs-text" rows="4" placeholder="Escribe aquí las observaciones, detalles o notas finales sobre esta tarea..." class="w-full bg-[#0f1115] border border-cyan-500/50 rounded-lg px-3 py-3 text-white focus:border-cyan-400 outline-none transition-colors shadow-inner text-sm custom-scrollbar"></textarea>
+                </div>
+                <div class="flex justify-end pt-2">
+                    <button type="button" onclick="closeObsModal()" class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white transition-colors mr-2">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg shadow-lg active:scale-95 transition-all">Guardar Observación</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -194,7 +218,7 @@
 
     <script>
         // --- ESTADO DE LA VISTA ---
-        let currentView = 'dashboard'; // Puede ser 'dashboard' o 'shopping'
+        let currentView = 'dashboard'; // 'dashboard', 'shopping', 'completed'
 
         // --- CONFIGURACIÓN DINÁMICA ---
         let aiKey = localStorage.getItem('app_gemini_key') || "AIzaSyAS994jGxpb0-X9S6pnuC5BDhrRaGiMBEo"; 
@@ -249,16 +273,24 @@
             currentView = view;
             const tabDash = document.getElementById('tab-dashboard');
             const tabShop = document.getElementById('tab-shopping');
+            const tabComp = document.getElementById('tab-completed');
             const statsContainer = document.getElementById('stats-container');
             
+            const inactiveClass = "px-5 py-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap";
+
+            tabDash.className = inactiveClass;
+            tabShop.className = inactiveClass;
+            if(tabComp) tabComp.className = inactiveClass;
+
             if (view === 'dashboard') {
                 tabDash.className = "px-5 py-3 text-sm font-bold border-b-2 border-cyan-500 text-cyan-400 transition-colors flex items-center gap-2 whitespace-nowrap bg-[#0f1115]";
-                tabShop.className = "px-5 py-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap";
                 statsContainer.style.display = 'flex'; // Mostrar estadísticas
-            } else {
+            } else if (view === 'shopping') {
                 tabShop.className = "px-5 py-3 text-sm font-bold border-b-2 border-purple-500 text-purple-400 transition-colors flex items-center gap-2 whitespace-nowrap bg-[#0f1115]";
-                tabDash.className = "px-5 py-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap";
-                statsContainer.style.display = 'none'; // Ocultar estadísticas en compras
+                statsContainer.style.display = 'none'; // Ocultar estadísticas
+            } else if (view === 'completed') {
+                if(tabComp) tabComp.className = "px-5 py-3 text-sm font-bold border-b-2 border-green-500 text-green-400 transition-colors flex items-center gap-2 whitespace-nowrap bg-[#0f1115]";
+                statsContainer.style.display = 'none'; // Ocultar estadísticas
             }
             
             renderBoard();
@@ -284,6 +316,7 @@
             } catch (error) {
                 console.error("Error al cargar desde Google Sheets:", error);
             } finally {
+                // Esto quita el recuadro de cargando.
                 document.getElementById('loading-overlay').style.display = 'none';
                 renderBoard();
             }
@@ -351,16 +384,24 @@
             // Filtrar las columnas que se van a mostrar dependiendo de la pestaña activa
             let visibleColumns = [];
             if (currentView === 'dashboard') {
-                visibleColumns = COLUMNS.filter(c => c.id !== 'Compras'); // Todas menos compras
-            } else {
+                // En el Tablero Principal ocultamos Compras Y Tareas Completadas
+                visibleColumns = COLUMNS.filter(c => c.id !== 'Compras' && c.id !== 'Completadas'); 
+            } else if (currentView === 'shopping') {
                 visibleColumns = COLUMNS.filter(c => c.id === 'Compras'); // SOLO compras
+            } else if (currentView === 'completed') {
+                visibleColumns = COLUMNS.filter(c => c.id === 'Completadas'); // SOLO completadas
             }
 
             visibleColumns.forEach(col => {
                 const colTasks = tasks.filter(t => t.status === col.id);
+                
+                let titleText = col.title;
+                if (currentView === 'shopping') titleText = '🛒 TU LISTA DE COMPRAS';
+                if (currentView === 'completed') titleText = '✅ TAREAS FINALIZADAS';
+
                 let colHTML = `<div class="w-full flex flex-col bg-[#161b22] border border-gray-800 rounded-xl overflow-hidden shadow-lg mb-4 text-left font-semibold">
                     <div class="p-3 border-b border-gray-800 flex justify-between items-center ${col.bg}">
-                        <h2 class="font-bold text-[10px] md:text-[11px] tracking-widest text-slate-200 uppercase">${currentView === 'shopping' ? '🛒 TU LISTA DE COMPRAS' : col.title}</h2>
+                        <h2 class="font-bold text-[10px] md:text-[11px] tracking-widest text-slate-200 uppercase">${titleText}</h2>
                         <span class="bg-[#0f1115] text-slate-400 text-[10px] px-2 py-0.5 rounded font-bold border border-gray-800">${colTasks.length}</span>
                     </div>
                     <div class="p-2 md:p-3 flex flex-col gap-2 min-h-[50px] bg-[#161b22]">`;
@@ -373,6 +414,34 @@
                     const statusColor = task.progress === 100 ? 'bg-green-500' : (task.category === 'Compras' ? 'bg-purple-500' : 'bg-cyan-500');
                     const isCompra = task.category === 'Compras' || task.status === 'Compras';
                     
+                    const isExpanded = currentView === 'completed' || task.progress === 100;
+                    const descHTML = task.desc ? `<div class="text-[10px] text-slate-400 text-left mt-1.5 ${isExpanded ? 'whitespace-pre-wrap' : 'truncate'} leading-relaxed bg-[#0f1115] p-2 rounded border border-gray-800/50">${task.desc}</div>` : '';
+
+                    let actionButtons = '';
+                    if (isCompra) {
+                        if (task.progress === 100) {
+                            actionButtons = `
+                                <div class="flex flex-col gap-1.5 w-full">
+                                    <button onclick="updateTaskProgress('${task.id}', 0)" class="w-full bg-purple-900/30 hover:bg-purple-900/50 border border-purple-500 text-[9px] py-1.5 rounded text-purple-200 transition-colors font-bold">✓ ¡Comprado! (Deshacer)</button>
+                                    <button onclick="openObsModal('${task.id}')" class="w-full bg-blue-900/20 hover:bg-blue-900/40 border border-blue-500/50 text-[9px] py-1.5 rounded text-blue-300 transition-colors font-bold flex items-center justify-center gap-1"><i class="fas fa-edit"></i> Añadir Nota</button>
+                                </div>`;
+                        } else {
+                            actionButtons = `<button onclick="updateTaskProgress('${task.id}', 100)" class="w-full bg-transparent hover:bg-purple-900/20 border border-purple-900/50 text-[9px] py-1.5 rounded text-purple-400 transition-colors font-bold">Marcar como Comprado</button>`;
+                        }
+                    } else {
+                        if (task.progress === 100) {
+                            actionButtons = `
+                                <div class="flex flex-col gap-1.5 w-full">
+                                    <button onclick="updateTaskProgress('${task.id}', 0)" class="w-full bg-green-900/30 hover:bg-green-900/50 border border-green-500 text-[9px] py-1.5 rounded text-green-200 transition-colors font-bold">✓ Completada (Deshacer)</button>
+                                    <button onclick="openObsModal('${task.id}')" class="w-full bg-blue-900/20 hover:bg-blue-900/40 border border-blue-500/50 text-[9px] py-1.5 rounded text-blue-300 transition-colors font-bold flex items-center justify-center gap-1"><i class="fas fa-edit"></i> Añadir Observación</button>
+                                </div>`;
+                        } else {
+                            actionButtons = `<div class="flex gap-1 w-full">` + 
+                                [10, 25, 50, 75, 100].map(v => `<button onclick="updateTaskProgress('${task.id}', ${v})" class="flex-1 bg-transparent hover:bg-gray-800 border border-gray-700 text-[9px] py-1 rounded text-slate-400 transition-colors font-bold">${v === 100 ? 'Fin' : v+'%'}</button>`).join('') +
+                                `</div>`;
+                        }
+                    }
+
                     colHTML += `<div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-[#1c212b] border border-gray-800 rounded-lg p-3 relative task-card group">
                         
                         <!-- BOTÓN ELIMINAR MEJORADO: Siempre visible, rojo sutil -->
@@ -380,14 +449,14 @@
                             <i class="fas fa-trash text-xs"></i>
                         </button>
 
-                        <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg ${task.priority === 'Alta' ? 'bg-red-500' : (isCompra ? 'bg-purple-500' : 'bg-cyan-500')}"></div>
+                        <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg ${task.priority === 'Alta' ? 'bg-red-500' : (isCompra ? 'bg-purple-500' : (task.progress === 100 ? 'bg-green-500' : 'bg-cyan-500'))}"></div>
                         <div class="flex-1 pl-2 pr-8 w-full md:w-auto min-w-0 text-left">
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="text-[9px] font-bold uppercase text-slate-300 bg-[#0f1115] px-1.5 py-0.5 rounded border border-gray-800/50">${task.category}</span>
-                                <span class="text-[9px] font-bold uppercase ${task.priority === 'Alta' ? 'text-red-400' : (isCompra ? 'text-purple-400' : 'text-cyan-400')}">${task.priority}</span>
+                                <span class="text-[9px] font-bold uppercase ${task.priority === 'Alta' ? 'text-red-400' : (isCompra ? 'text-purple-400' : (task.progress === 100 ? 'text-green-400' : 'text-cyan-400'))}">${task.priority}</span>
                             </div>
-                            <h3 class="font-bold text-white text-base md:text-[17px] truncate text-left ${task.progress === 100 && isCompra ? 'line-through text-slate-500' : ''}">${task.title}</h3>
-                            ${task.desc ? `<p class="text-[10px] text-slate-400 truncate text-left mt-0.5">${task.desc}</p>` : ''}
+                            <h3 class="font-bold text-white text-base md:text-[17px] truncate text-left ${task.progress === 100 ? 'line-through text-slate-500' : ''}">${task.title}</h3>
+                            ${descHTML}
                         </div>
                         <div class="bg-[#0f1115] p-2 rounded-md flex flex-row md:flex-col items-center justify-center gap-3 md:gap-0.5 border border-gray-800 min-w-[120px] shrink-0 text-center text-xs hidden md:flex">
                             <div class="text-slate-400 font-semibold">${task.date}</div>
@@ -396,19 +465,12 @@
                         <div class="w-full md:w-[320px] flex flex-col shrink-0 self-center">
                             <div class="flex justify-between items-end mb-1">
                                 <span class="text-[9px] font-bold text-slate-200 uppercase tracking-widest">${isCompra ? 'Estado de Compra' : 'Avance'}</span>
-                                <span class="text-[10px] font-bold font-mono ${isCompra ? 'text-purple-400' : 'text-cyan-400'}">${task.progress}%</span>
+                                <span class="text-[10px] font-bold font-mono ${isCompra ? 'text-purple-400' : (task.progress === 100 ? 'text-green-400' : 'text-cyan-400')}">${task.progress}%</span>
                             </div>
                             <div class="w-full h-1 bg-[#0f1115] rounded-full overflow-hidden mb-2 shadow-inner">
                                 <div class="h-full transition-all duration-500 ${statusColor}" style="width: ${task.progress}%"></div>
                             </div>
-                            <div class="flex gap-1">
-                                ${isCompra 
-                                    ? (task.progress === 100 
-                                        ? `<button onclick="updateTaskProgress('${task.id}', 0)" class="flex-1 bg-purple-900/30 hover:bg-purple-900/50 border border-purple-500 text-[9px] py-1 rounded text-purple-200 transition-colors font-bold">✓ ¡Comprado! (Deshacer)</button>`
-                                        : `<button onclick="updateTaskProgress('${task.id}', 100)" class="flex-1 bg-transparent hover:bg-purple-900/20 border border-purple-900/50 text-[9px] py-1 rounded text-purple-400 transition-colors font-bold">Marcar como Comprado</button>`)
-                                    : [10, 25, 50, 75, 100].map(v => `<button onclick="updateTaskProgress('${task.id}', ${v})" class="flex-1 bg-transparent hover:bg-gray-800 border border-gray-700 text-[9px] py-1 rounded text-slate-400 transition-colors font-bold">${v === 100 ? 'Fin' : v+'%'}</button>`).join('')
-                                }
-                            </div>
+                            ${actionButtons}
                         </div>
                     </div>`;
                 });
@@ -446,6 +508,42 @@
                 sendToGoogleSheets({ id: id, action: 'delete' });
             }
         }
+
+        // ==========================================
+        // MODAL DE OBSERVACIONES
+        // ==========================================
+        function openObsModal(id) {
+            const task = tasks.find(t => t.id === id);
+            if(!task) return;
+            document.getElementById('obs-task-id').value = id;
+            document.getElementById('obs-task-title').innerText = "Observación para: " + task.title;
+            document.getElementById('obs-text').value = ""; 
+            document.getElementById('obs-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('obs-text').focus(), 100);
+        }
+
+        function closeObsModal() {
+            document.getElementById('obs-modal').classList.add('hidden');
+            document.getElementById('obs-form').reset();
+        }
+
+        document.getElementById('obs-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = document.getElementById('obs-task-id').value;
+            const obsText = document.getElementById('obs-text').value.trim();
+            
+            if(obsText) {
+                const task = tasks.find(t => t.id === id);
+                if(task) {
+                    const prefix = task.desc ? task.desc + "\n\n" : "";
+                    task.desc = prefix + "📌 OBSERVACIÓN: " + obsText;
+                    saveTasks();
+                    renderBoard();
+                    sendToGoogleSheets(task); // Sincroniza la nueva descripción a Google Sheets
+                }
+            }
+            closeObsModal();
+        });
 
         // ==========================================
         // FORMULARIO MANUAL MEJORADO
@@ -630,7 +728,7 @@ Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen 
                 
                 let userFriendlyError = e.message;
                 if (userFriendlyError.includes("API_KEY_INVALID")) {
-                    userFriendlyError = "Tu API Key es inválida.";
+                    userFriendlyError = "Tu API Key es inválida o está vencida.";
                 }
                 
                 errorInfo.innerHTML = `<b>Aviso IA:</b> ${userFriendlyError}. <br/><i>El texto se pegó en el título para que no lo pierdas.</i>`;
