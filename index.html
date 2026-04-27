@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Centro de Control Diario</title>
+    
+    <!-- FAVICON: Punto verde con check integrado -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2310b981'/><path d='M30 50 L45 65 L70 35' stroke='white' stroke-width='10' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -77,23 +81,23 @@
         <div class="flex flex-col gap-4 md:gap-5 w-full max-w-[1300px] mx-auto pb-10" id="kanban-board"></div>
     </main>
 
-    <!-- MODAL TAREA INTELIGENTE -->
+    <!-- MODAL NUEVA TAREA / COMPRA (ENTRADA RÁPIDA) -->
     <div id="task-modal" class="fixed inset-0 bg-black/80 hidden z-50 flex justify-center items-center backdrop-blur-sm overflow-y-auto p-4 text-left">
         <div class="bg-[#161b22] border border-gray-700 rounded-xl w-full max-w-lg p-5 md:p-6 shadow-2xl transform transition-all my-auto">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg md:text-xl font-bold text-white uppercase tracking-widest text-xs">Añadir con IA (Groq)</h2>
+                <h2 class="text-lg md:text-xl font-bold text-white uppercase tracking-widest text-xs">Añadir Registro</h2>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-white p-1 transition-colors"><i class="fas fa-times text-xl"></i></button>
             </div>
 
-            <!-- ASISTENTE DE VOZ (INMORTAL Y ACUMULATIVO) -->
-            <div class="mb-5 md:mb-6 p-4 bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-500/30 rounded-xl relative overflow-hidden">
+            <!-- ASISTENTE DE VOZ (RESTAURADO Y MEJORADO) -->
+            <div class="mb-5 p-4 bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-500/30 rounded-xl relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-500 to-blue-500"></div>
                 <label class="block text-sm font-bold text-cyan-400 mb-1 flex items-center gap-2 uppercase tracking-tighter">
-                    <i class="fas fa-microphone-lines"></i> Dictado Inmortal y Acumulativo
+                    <i class="fas fa-microphone-lines"></i> Dictado Inteligente
                 </label>
                 <div class="flex gap-2 mt-2">
                     <div class="relative flex-1">
-                        <textarea id="ai-input" placeholder="Hable libremente. El texto se acumulará y el micrófono no se apagará solo..." rows="3" class="w-full bg-[#0f1115] border border-cyan-500/50 rounded-lg pl-3 pr-12 py-3 text-white focus:border-cyan-400 outline-none text-sm resize-none custom-scrollbar transition-all"></textarea>
+                        <textarea id="ai-input" placeholder="Hable libremente. El texto se acumulará..." rows="3" class="w-full bg-[#0f1115] border border-cyan-500/50 rounded-lg pl-3 pr-12 py-3 text-white focus:border-cyan-400 outline-none text-sm resize-none custom-scrollbar transition-all"></textarea>
                         <button type="button" onclick="toggleSmartDictation()" class="absolute right-2 bottom-2 w-10 h-10 flex justify-center items-center bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-400 rounded-md transition-all group" id="btn-smart-mic">
                             <i class="fas fa-microphone text-lg" id="mic-icon"></i>
                         </button>
@@ -107,41 +111,40 @@
                 </div>
             </div>
 
-            <form id="new-task-form" class="space-y-3 md:space-y-4">
+            <form id="new-task-form" class="space-y-4 md:space-y-5">
+                
+                <!-- BOTONES DE ENTRADA RÁPIDA -->
+                <div>
+                    <label class="block font-semibold text-slate-400 mb-2 uppercase tracking-wider text-[10px]">¿Qué deseas añadir?</label>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="setTaskType('normal')" id="btn-type-normal" class="flex-1 py-2.5 rounded border border-cyan-500 bg-cyan-500/20 text-cyan-300 text-xs font-bold transition-all shadow-inner">💼 Tarea</button>
+                        <button type="button" onclick="setTaskType('urgente')" id="btn-type-urgente" class="flex-1 py-2.5 rounded border border-gray-700 bg-[#0f1115] hover:bg-gray-800 text-gray-400 text-xs font-bold transition-all">🔥 Urgente</button>
+                        <button type="button" onclick="setTaskType('compra')" id="btn-type-compra" class="flex-1 py-2.5 rounded border border-gray-700 bg-[#0f1115] hover:bg-gray-800 text-gray-400 text-xs font-bold transition-all">🛒 Compra</button>
+                    </div>
+                    <input type="hidden" id="task-type" value="normal">
+                </div>
+
                 <div class="text-left text-xs">
-                    <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider">Título de la tarea</label>
-                    <input type="text" id="task-title" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 outline-none">
+                    <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider" id="label-title">Título / Artículo</label>
+                    <input type="text" id="task-title" required autocomplete="off" placeholder="Ej: Revisar correos, Cinta aislante..." class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-3 text-white focus:border-cyan-500 outline-none transition-colors shadow-inner text-sm">
                 </div>
+                
                 <div class="text-left text-xs">
-                    <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider">Descripción</label>
-                    <textarea id="task-desc" rows="2" class="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 outline-none"></textarea>
+                    <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider" id="label-desc">Descripción o Detalles</label>
+                    <textarea id="task-desc" rows="2" placeholder="Opcional..." class="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none transition-colors"></textarea>
                 </div>
-                <div class="grid grid-cols-2 gap-4 text-left text-xs">
-                    <div>
-                        <label class="block font-semibold text-slate-400 mb-1 uppercase">Categoría</label>
-                        <input type="text" id="task-cat" value="General" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white outline-none">
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-400 mb-1 uppercase">Prioridad</label>
-                        <select id="task-prio" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white outline-none">
-                            <option value="Alta">Alta</option>
-                            <option value="Baja" selected>Baja</option>
-                        </select>
-                    </div>
+                
+                <div class="text-left text-xs" id="category-container">
+                    <label class="block font-semibold text-slate-400 mb-1 uppercase">Categoría</label>
+                    <input type="text" id="task-cat" value="General" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white outline-none">
                 </div>
-                <div class="grid grid-cols-2 gap-4 text-left text-xs">
-                    <div>
-                        <label class="block font-semibold text-slate-400 mb-1 uppercase text-[10px]">Fecha</label>
-                        <input type="date" id="task-date" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white" style="color-scheme: dark;">
+
+                <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-800">
+                    <span class="text-slate-600 italic text-[10px] hidden md:block">Fecha y hora automáticas</span>
+                    <div class="flex gap-3 w-full md:w-auto justify-end">
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white transition-colors">Cancelar</button>
+                        <button type="submit" class="px-8 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg shadow-lg active:scale-95 transition-all">Guardar</button>
                     </div>
-                    <div>
-                        <label class="block font-semibold text-slate-400 mb-1 uppercase text-[10px]">Hora</label>
-                        <input type="time" id="task-time" required class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white">
-                    </div>
-                </div>
-                <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white transition-colors">Cancelar</button>
-                    <button type="submit" class="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg shadow-lg active:scale-95">Guardar Tarea</button>
                 </div>
             </form>
         </div>
@@ -149,16 +152,17 @@
 
     <script>
         // --- CONFIGURACIÓN ---
-        const aiKey = "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"; 
         const googleSheetUrl = "https://script.google.com/macros/s/AKfycbxrXvFXX12zA76XRhUabS1a_FpW1sRT6p3tOnT4ngS5nzYWn0bzAPZizp3-oTNaXQZG/exec";
 
         // Tareas locales
         let tasks = JSON.parse(localStorage.getItem('kanban_tasks')) || [];
 
+        // NUEVO: Agregada la columna de Compras
         const COLUMNS = [
             { id: 'Prioridad Alta', title: '🔥 PRIORIDAD ALTA', bg: 'bg-[#1f1616]' },
             { id: 'En Proceso', title: '⚙️ EN PROCESO', bg: 'bg-[#161c22]' },
             { id: 'Pendientes', title: '📋 PENDIENTES / OTROS', bg: 'bg-[#1a1a1a]' },
+            { id: 'Compras', title: '🛒 PARA COMPRAR', bg: 'bg-[#1e1a24]' },
             { id: 'Completadas', title: '✅ COMPLETADAS', bg: 'bg-[#161f18]' }
         ];
 
@@ -167,42 +171,30 @@
         // ==========================================
         async function fetchTasksFromSheets() {
             try {
-                // Descargar información desde Sheets
                 const response = await fetch(googleSheetUrl);
                 const data = await response.json();
                 
-                // Si la respuesta es un arreglo, actualizar el estado
                 if(Array.isArray(data)) {
-                    // BLINDAJE: Limpiar y adaptar las fechas y horas que vienen de Google Sheets
                     tasks = data.map(task => {
-                        // Cortar texto extra de la fecha (de "2024-10-25T05:00.000Z" a "2024-10-25")
-                        if (task.date && task.date.includes('T')) {
-                            task.date = task.date.split('T')[0];
-                        }
-                        // Cortar texto extra de la hora (de "1899-12-30T14:30.000Z" a "14:30")
-                        if (task.time && task.time.includes('T')) {
-                            task.time = task.time.split('T')[1].substring(0, 5);
-                        } else if (task.time && task.time.length > 5) {
-                            task.time = task.time.substring(0, 5);
-                        }
+                        if (task.date && task.date.includes('T')) task.date = task.date.split('T')[0];
+                        if (task.time && task.time.includes('T')) task.time = task.time.split('T')[1].substring(0, 5);
+                        else if (task.time && task.time.length > 5) task.time = task.time.substring(0, 5);
                         return task;
                     });
-                    saveTasks(); // Guardar copia local de seguridad
+                    saveTasks(); 
                 }
             } catch (error) {
-                console.error("Error al cargar desde Google Sheets (usando caché local):", error);
+                console.error("Error al cargar desde Google Sheets:", error);
             } finally {
-                // Ocultar pantalla de carga e inicializar panel
                 document.getElementById('loading-overlay').style.display = 'none';
                 renderBoard();
             }
         }
 
         function sendToGoogleSheets(taskData) {
-            // Se envía en background (no bloquea al usuario)
             fetch(googleSheetUrl, {
                 method: 'POST',
-                mode: 'no-cors', // Fundamental para Google Apps Script
+                mode: 'no-cors', 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(taskData)
             }).then(() => {
@@ -219,11 +211,11 @@
         // ==========================================
         function manualSync() {
             const icon = document.getElementById('sync-icon');
-            if(icon) icon.classList.add('animate-spin'); // Hace girar el icono
+            if(icon) icon.classList.add('animate-spin'); 
             document.getElementById('loading-overlay').style.display = 'flex';
             
             fetchTasksFromSheets().finally(() => {
-                if(icon) icon.classList.remove('animate-spin'); // Detiene el giro al terminar
+                if(icon) icon.classList.remove('animate-spin'); 
             });
         }
 
@@ -252,7 +244,7 @@
             const board = document.getElementById('kanban-board');
             if(!board) return;
             board.innerHTML = '';
-            document.getElementById('stat-pending').innerText = tasks.filter(t => t.status === 'Pendientes' || t.status === 'Prioridad Alta').length;
+            document.getElementById('stat-pending').innerText = tasks.filter(t => t.status === 'Pendientes' || t.status === 'Prioridad Alta' || t.status === 'Compras').length;
             document.getElementById('stat-progress').innerText = tasks.filter(t => t.status === 'En Proceso').length;
             document.getElementById('stat-completed').innerText = tasks.filter(t => t.status === 'Completadas').length;
 
@@ -270,36 +262,41 @@
                 }
 
                 colTasks.forEach(task => {
-                    const statusColor = task.progress === 100 ? 'bg-green-500' : 'bg-cyan-500';
+                    const statusColor = task.progress === 100 ? 'bg-green-500' : (task.category === 'Compras' ? 'bg-purple-500' : 'bg-cyan-500');
+                    const isCompra = task.category === 'Compras';
+                    
                     colHTML += `<div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-[#1c212b] border border-gray-800 rounded-lg p-3 relative task-card group">
                         
-                        <button onclick="deleteTask('${task.id}')" class="absolute top-2 right-2 text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-10" title="Eliminar Tarea">
+                        <button onclick="deleteTask('${task.id}')" class="absolute top-2 right-2 text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-10" title="Eliminar">
                             <i class="fas fa-trash text-xs"></i>
                         </button>
 
-                        <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg ${task.priority === 'Alta' ? 'bg-red-500' : 'bg-cyan-500'}"></div>
+                        <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg ${task.priority === 'Alta' ? 'bg-red-500' : (isCompra ? 'bg-purple-500' : 'bg-cyan-500')}"></div>
                         <div class="flex-1 pl-2 w-full md:w-auto min-w-0 text-left">
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="text-[9px] font-bold uppercase text-slate-300 bg-[#0f1115] px-1.5 py-0.5 rounded border border-gray-800/50">${task.category}</span>
-                                <span class="text-[9px] font-bold uppercase ${task.priority === 'Alta' ? 'text-red-400' : 'text-cyan-400'}">${task.priority}</span>
+                                <span class="text-[9px] font-bold uppercase ${task.priority === 'Alta' ? 'text-red-400' : (isCompra ? 'text-purple-400' : 'text-cyan-400')}">${task.priority}</span>
                             </div>
                             <h3 class="font-bold text-white text-base md:text-[17px] truncate pr-6 text-left">${task.title}</h3>
-                            <p class="text-[10px] text-slate-400 truncate text-left">${task.desc || '...'}</p>
+                            ${task.desc ? `<p class="text-[10px] text-slate-400 truncate text-left">${task.desc}</p>` : ''}
                         </div>
-                        <div class="bg-[#0f1115] p-2 rounded-md flex flex-row md:flex-col items-center justify-center gap-3 md:gap-0.5 border border-gray-800 min-w-[120px] shrink-0 text-center text-xs">
+                        <div class="bg-[#0f1115] p-2 rounded-md flex flex-row md:flex-col items-center justify-center gap-3 md:gap-0.5 border border-gray-800 min-w-[120px] shrink-0 text-center text-xs hidden md:flex">
                             <div class="text-slate-400 font-semibold">${task.date}</div>
                             <div class="font-mono font-bold text-cyan-400">${task.time}</div>
                         </div>
                         <div class="w-full md:w-[320px] flex flex-col shrink-0 self-center">
                             <div class="flex justify-between items-end mb-1">
-                                <span class="text-[9px] font-bold text-slate-200 uppercase tracking-widest">Avance</span>
-                                <span class="text-[10px] font-bold font-mono text-cyan-400">${task.progress}%</span>
+                                <span class="text-[9px] font-bold text-slate-200 uppercase tracking-widest">${isCompra ? 'Estado de Compra' : 'Avance'}</span>
+                                <span class="text-[10px] font-bold font-mono ${isCompra ? 'text-purple-400' : 'text-cyan-400'}">${task.progress}%</span>
                             </div>
                             <div class="w-full h-1 bg-[#0f1115] rounded-full overflow-hidden mb-2 shadow-inner">
                                 <div class="h-full transition-all duration-500 ${statusColor}" style="width: ${task.progress}%"></div>
                             </div>
                             <div class="flex gap-1">
-                                ${[10, 25, 50, 75, 100].map(v => `<button onclick="updateTaskProgress('${task.id}', ${v})" class="flex-1 bg-transparent hover:bg-gray-800 border border-gray-700 text-[9px] py-1 rounded text-slate-400 transition-colors font-bold">${v === 100 ? 'Fin' : v+'%'}</button>`).join('')}
+                                ${isCompra 
+                                    ? `<button onclick="updateTaskProgress('${task.id}', 100)" class="flex-1 bg-transparent hover:bg-gray-800 border border-purple-900/50 text-[9px] py-1 rounded text-purple-400 transition-colors font-bold">Marcar como Comprado ✅</button>`
+                                    : [10, 25, 50, 75, 100].map(v => `<button onclick="updateTaskProgress('${task.id}', ${v})" class="flex-1 bg-transparent hover:bg-gray-800 border border-gray-700 text-[9px] py-1 rounded text-slate-400 transition-colors font-bold">${v === 100 ? 'Fin' : v+'%'}</button>`).join('')
+                                }
                             </div>
                         </div>
                     </div>`;
@@ -315,27 +312,62 @@
                 task.progress = val;
                 if(val === 100) task.status = 'Completadas';
                 else if(task.priority === 'Alta') task.status = 'Prioridad Alta'; 
+                else if(task.category === 'Compras') task.status = 'Compras'; // Se queda en compras
                 else if(val > 0) task.status = 'En Proceso';
                 else task.status = 'Pendientes';
                 
                 saveTasks();
                 renderBoard();
-                sendToGoogleSheets(task); // Sincroniza la actualización
+                sendToGoogleSheets(task);
             }
         }
 
         function deleteTask(id) {
-            if(confirm("¿Estás seguro de eliminar esta tarea?")) {
+            if(confirm("¿Estás seguro de eliminar este registro?")) {
                 tasks = tasks.filter(t => t.id !== id);
                 saveTasks();
                 renderBoard();
-                // Sincroniza la eliminación informando a Google Sheets
                 sendToGoogleSheets({ id: id, action: 'delete' });
             }
         }
 
         // ==========================================
-        // MICRÓFONO INMORTAL Y ACUMULATIVO
+        // FORMULARIO MANUAL MEJORADO
+        // ==========================================
+        function setTaskType(type) {
+            document.getElementById('task-type').value = type;
+            
+            const btnNormal = document.getElementById('btn-type-normal');
+            const btnUrgente = document.getElementById('btn-type-urgente');
+            const btnCompra = document.getElementById('btn-type-compra');
+            const catContainer = document.getElementById('category-container');
+            const titleLabel = document.getElementById('label-title');
+            
+            // Estilos por defecto
+            [btnNormal, btnUrgente, btnCompra].forEach(btn => {
+                btn.className = "flex-1 py-2.5 rounded border border-gray-700 bg-[#0f1115] hover:bg-gray-800 text-gray-400 text-xs font-bold transition-all";
+            });
+            
+            // Activar el seleccionado
+            if (type === 'normal') {
+                btnNormal.className = "flex-1 py-2.5 rounded border border-cyan-500 bg-cyan-500/20 text-cyan-300 text-xs font-bold transition-all shadow-inner";
+                catContainer.style.display = 'block';
+                titleLabel.innerText = "Título de la Tarea";
+            } else if (type === 'urgente') {
+                btnUrgente.className = "flex-1 py-2.5 rounded border border-red-500 bg-red-500/20 text-red-300 text-xs font-bold transition-all shadow-inner";
+                catContainer.style.display = 'block';
+                titleLabel.innerText = "Tarea Urgente";
+            } else if (type === 'compra') {
+                btnCompra.className = "flex-1 py-2.5 rounded border border-purple-500 bg-purple-500/20 text-purple-300 text-xs font-bold transition-all shadow-inner";
+                catContainer.style.display = 'none'; // Escondemos categoría porque ya sabemos que es una compra
+                titleLabel.innerText = "Artículo a Comprar";
+            }
+            
+            document.getElementById('task-title').focus();
+        }
+
+        // ==========================================
+        // MICRÓFONO INMORTAL Y ACUMULATIVO (RESTAURADO)
         // ==========================================
         let recognition = null;
         let isRecording = false;
@@ -372,7 +404,7 @@
                 statusEl.classList.remove('hidden');
                 document.getElementById('status-text').innerText = "Escuchando... El texto se acumulará.";
                 document.getElementById('api-error-info').classList.add('hidden');
-                window.lastConfirmedPhrase = ""; // BLINDAJE: Resetear filtro de duplicados
+                window.lastConfirmedPhrase = ""; 
             };
 
             recognition.onresult = (event) => {
@@ -389,7 +421,6 @@
                 }
                 
                 if (confirmedThisSession) {
-                    // BLINDAJE: Filtro inteligente para evitar texto duplicado en celulares
                     if (window.lastConfirmedPhrase !== confirmedThisSession) {
                         finalHistory = (finalHistory.trim() ? finalHistory.trim() + " " : "") + confirmedThisSession;
                         window.lastConfirmedPhrase = confirmedThisSession;
@@ -409,7 +440,7 @@
         }
 
         // ==========================================
-        // MOTOR DE IA: GROQ
+        // MOTOR DE IA: GROQ (BLINDADO Y CON SISTEMA DE RESCATE)
         // ==========================================
         async function processWithGroq(text) {
             const statusEl = document.getElementById('ai-status');
@@ -421,58 +452,58 @@
             errorInfo.classList.add('hidden');
             statusText.innerText = "IA procesando campos...";
             spinner.className = "fas fa-bolt animate-pulse text-yellow-400";
-
-            const today = new Date();
-            const todayStr = today.toISOString().split('T')[0];
             
-            const prompt = `Actúa como un extractor de datos profesional. Analiza el siguiente texto y devuelve un objeto JSON en español. 
-            Texto: "${text}". 
-            Fecha de hoy: ${todayStr}.
-            FORMATO ESTRICTO DE SALIDA (sin texto adicional): {"title": "resumen corto", "desc": "detalles", "category": "tipo general", "priority": "Alta" o "Baja", "date": "YYYY-MM-DD", "time": "HH:MM"}`;
+            const prompt = `Actúa como un asistente de extracción de datos.
+Texto: "${text}". 
+Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen muy corto", "desc": "detalles completos", "category": "Compras" o "General", "priority": "Alta" o "Baja"}`;
 
             try {
+                // Hacemos la petición directamente a Groq (soporta CORS nativo)
                 const apiUrl = "https://api.groq.com/openai/v1/chat/completions";
                 
-                const tryFetch = async (url) => {
-                    return await fetch(url, {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${aiKey}`
-                        },
-                        body: JSON.stringify({
-                            model: "llama-3.1-8b-instant",
-                            messages: [
-                                { role: "system", content: "Responde exclusivamente en JSON válido." },
-                                { role: "user", content: prompt }
-                            ],
-                            temperature: 0.1,
-                            response_format: { type: "json_object" }
-                        })
-                    });
-                };
-
-                let response;
-                try {
-                    response = await tryFetch(apiUrl);
-                } catch(e) {
-                    response = await tryFetch("https://corsproxy.io/?" + encodeURIComponent(apiUrl));
-                }
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${aiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: "llama3-8b-8192", // Cambiado a un modelo más estable para JSON
+                        messages: [
+                            { role: "system", content: "You output valid JSON only." },
+                            { role: "user", content: prompt }
+                        ],
+                        temperature: 0.1,
+                        response_format: { type: "json_object" }
+                    })
+                });
 
                 if (!response.ok) {
                     const err = await response.json();
-                    throw new Error(err.error?.message || "Error del servidor Groq");
+                    throw new Error(err.error?.message || `Error del servidor: ${response.status}`);
                 }
 
                 const result = await response.json();
-                const data = JSON.parse(result.choices[0].message.content);
+                let rawContent = result.choices[0].message.content;
+                
+                // BLINDAJE: Limpiar el texto en caso de que la IA responda con bloques de código Markdown
+                rawContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
+                
+                const data = JSON.parse(rawContent);
 
+                // Llenar campos
                 document.getElementById('task-title').value = data.title || "";
                 document.getElementById('task-desc').value = data.desc || "";
-                document.getElementById('task-cat').value = data.category || "General";
-                document.getElementById('task-date').value = data.date || todayStr;
-                document.getElementById('task-time').value = data.time || "10:00";
-                document.getElementById('task-prio').value = (data.priority === "Alta") ? "Alta" : "Baja";
+                
+                // Activar automáticamente el botón rápido correcto
+                if (data.category && data.category.toLowerCase().includes("compra")) {
+                    setTaskType('compra');
+                } else if (data.priority === "Alta") {
+                    setTaskType('urgente');
+                } else {
+                    setTaskType('normal');
+                    document.getElementById('task-cat').value = data.category || "General";
+                }
 
                 statusText.innerText = "¡Campos rellenados con éxito!";
                 spinner.className = "fas fa-check-circle text-green-400";
@@ -480,54 +511,88 @@
 
             } catch (e) {
                 console.error("Error Groq:", e);
-                statusText.innerText = "Error al procesar";
-                spinner.className = "fas fa-exclamation-triangle text-red-400";
-                errorInfo.innerHTML = `<b>Error:</b> ${e.message}`;
+                
+                // SISTEMA DE RESCATE: Si la API de Groq falla, copiamos el dictado directamente al Título
+                document.getElementById('task-title').value = text;
+                setTaskType('normal');
+                
+                statusText.innerText = "Texto pegado sin IA";
+                spinner.className = "fas fa-exclamation-triangle text-yellow-400";
+                
+                let userFriendlyError = e.message;
+                if (userFriendlyError.includes("API key")) {
+                    userFriendlyError = "Tu API Key ha sido bloqueada o es inválida.";
+                }
+                
+                errorInfo.innerHTML = `<b>Aviso IA:</b> ${userFriendlyError}. <br/><i>El texto se pegó en el título para que no lo pierdas.</i>`;
                 errorInfo.classList.remove('hidden');
             }
         }
 
         function openModal() {
             document.getElementById('task-modal').classList.remove('hidden');
-            const now = new Date();
-            document.getElementById('task-date').value = now.toISOString().split('T')[0];
-            document.getElementById('task-time').value = now.toTimeString().slice(0,5);
+            setTaskType('normal'); // Por defecto abre en normal
+            setTimeout(() => document.getElementById('task-title').focus(), 100);
         }
 
         function closeModal() {
             document.getElementById('task-modal').classList.add('hidden');
             document.getElementById('new-task-form').reset();
+            
+            // Restaurado: Apagar micrófono y resetear valores de IA
             document.getElementById('ai-input').value = "";
             finalHistory = ""; 
             if (recognition) recognition.stop();
             isRecording = false;
+            const iconEl = document.getElementById('mic-icon');
+            if (iconEl) {
+                iconEl.className = "fas fa-microphone text-lg";
+                iconEl.classList.remove('mic-active');
+            }
         }
 
         document.getElementById('new-task-form').addEventListener('submit', (e) => {
             e.preventDefault();
-            const prio = document.getElementById('task-prio').value;
+            
+            const type = document.getElementById('task-type').value;
+            let prio = 'Baja';
+            let status = 'Pendientes';
+            let cat = document.getElementById('task-cat').value;
+            
+            // Lógica según el botón rápido seleccionado
+            if (type === 'urgente') {
+                prio = 'Alta';
+                status = 'Prioridad Alta';
+            } else if (type === 'compra') {
+                prio = 'Baja'; // Las compras no urgen tanto por defecto
+                status = 'Compras';
+                cat = 'Compras';
+            }
+
+            const now = new Date();
+
             const newTask = {
                 id: 't' + Date.now(),
                 title: document.getElementById('task-title').value,
                 desc: document.getElementById('task-desc').value,
-                category: document.getElementById('task-cat').value,
+                category: cat,
                 priority: prio,
-                status: (prio === 'Alta') ? 'Prioridad Alta' : 'Pendientes',
+                status: status,
                 progress: 0,
-                date: document.getElementById('task-date').value,
-                time: document.getElementById('task-time').value
+                // Fechas automáticas!
+                date: now.toISOString().split('T')[0],
+                time: now.toTimeString().slice(0,5)
             };
+            
             tasks.push(newTask);
             saveTasks();
             renderBoard();
             closeModal();
             
-            // Sincroniza creación
             sendToGoogleSheets(newTask);
         });
 
         // INICIO DE LA APLICACIÓN
-        // Primero pinta lo que hay en caché, luego sincroniza con Sheets
         renderBoard();
         fetchTasksFromSheets();
 
