@@ -60,6 +60,11 @@
         <div class="flex items-center gap-2 md:gap-3 w-full md:w-auto justify-between md:justify-end">
             <div class="text-xl md:text-2xl font-mono font-bold tracking-widest text-white bg-[#0f1115] px-4 py-1.5 rounded-lg border border-gray-800 hidden lg:block" id="current-time">00:00:00</div>
             
+            <!-- BOTÓN CONFIGURACIÓN -->
+            <button onclick="openConfigModal()" class="flex justify-center items-center w-10 h-10 md:w-auto md:px-3 md:py-2.5 bg-[#1e293b] hover:bg-[#334155] border border-gray-600 text-gray-400 rounded-md transition-all shadow-md active:scale-95" title="Configuración de APIs">
+                <i class="fas fa-cog"></i>
+            </button>
+
             <!-- BOTÓN SINCRONIZAR MANUAL -->
             <button onclick="manualSync()" class="flex justify-center items-center w-10 h-10 md:w-auto md:px-3 md:py-2.5 bg-[#1e293b] hover:bg-[#334155] border border-blue-500/30 text-blue-400 rounded-md transition-all shadow-md active:scale-95" title="Sincronizar ahora">
                 <i class="fas fa-sync-alt" id="sync-icon"></i><span class="hidden md:inline ml-2 text-sm font-bold">Sync</span>
@@ -80,6 +85,31 @@
     <main class="flex-1 overflow-x-hidden overflow-y-auto p-3 md:p-6 custom-scrollbar">
         <div class="flex flex-col gap-4 md:gap-5 w-full max-w-[1300px] mx-auto pb-10" id="kanban-board"></div>
     </main>
+
+    <!-- MODAL CONFIGURACIÓN -->
+    <div id="config-modal" class="fixed inset-0 bg-black/80 hidden z-50 flex justify-center items-center backdrop-blur-sm p-4 text-left">
+        <div class="bg-[#161b22] border border-gray-700 rounded-xl w-full max-w-lg p-5 md:p-6 shadow-2xl transform transition-all my-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg md:text-xl font-bold text-white uppercase tracking-widest text-xs">Configuración</h2>
+                <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white p-1 transition-colors"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider text-[10px]">Google Gemini API Key (Para Inteligencia Artificial)</label>
+                    <input type="password" id="config-api-key" placeholder="AIzaSy..." class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none text-sm">
+                    <p class="text-[9px] text-slate-500 mt-1">Genera tu clave gratuita y segura en <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-cyan-400 underline">aistudio.google.com/app/apikey</a></p>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider text-[10px]">URL de Google Sheets</label>
+                    <input type="text" id="config-sheet-url" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none text-sm">
+                </div>
+                <div class="flex justify-end mt-6 pt-4 border-t border-gray-800">
+                    <button onclick="closeConfigModal()" class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white transition-colors mr-2">Cancelar</button>
+                    <button onclick="saveConfig()" class="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg shadow-lg active:scale-95 transition-all">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- MODAL NUEVA TAREA / COMPRA (ENTRADA RÁPIDA) -->
     <div id="task-modal" class="fixed inset-0 bg-black/80 hidden z-50 flex justify-center items-center backdrop-blur-sm overflow-y-auto p-4 text-left">
@@ -108,7 +138,7 @@
                         <i class="fas fa-bolt animate-pulse text-yellow-400" id="ai-spinner"></i> <span id="status-text">Escuchando...</span>
                     </div>
                     <div id="api-error-info" class="text-[9px] text-red-400 italic hidden border-t border-red-900/30 pt-1 mt-1"></div>
-                </div>
+                <button type="button" onclick="closeModal()" class="text-slate-400 hover:text-white p-1 transition-colors"><i class="fas fa-times text-xl"></i></button>
             </div>
 
             <form id="new-task-form" class="space-y-4 md:space-y-5">
@@ -151,8 +181,42 @@
     </div>
 
     <script>
-        // --- CONFIGURACIÓN ---
-        const googleSheetUrl = "https://script.google.com/macros/s/AKfycbxrXvFXX12zA76XRhUabS1a_FpW1sRT6p3tOnT4ngS5nzYWn0bzAPZizp3-oTNaXQZG/exec";
+        // --- CONFIGURACIÓN DINÁMICA ---
+        // Se cargan los valores desde LocalStorage, de lo contrario se usan los que dejamos por defecto.
+        let aiKey = localStorage.getItem('app_gemini_key') || "AIzaSyAS994jGxpb0-X9S6pnuC5BDhrRaGiMBEo"; 
+        let googleSheetUrl = localStorage.getItem('app_sheet_url') || "https://script.google.com/macros/s/AKfycbxrXvFXX12zA76XRhUabS1a_FpW1sRT6p3tOnT4ngS5nzYWn0bzAPZizp3-oTNaXQZG/exec";
+
+        // Funciones del Modal de Configuración
+        function openConfigModal() {
+            document.getElementById('config-modal').classList.remove('hidden');
+            // Ocultamos parcialmente la llave si ya existe para que no se lea a simple vista
+            document.getElementById('config-api-key').value = localStorage.getItem('app_gemini_key') || "";
+            document.getElementById('config-sheet-url').value = googleSheetUrl;
+        }
+
+        function closeConfigModal() {
+            document.getElementById('config-modal').classList.add('hidden');
+        }
+
+        function saveConfig() {
+            const newKey = document.getElementById('config-api-key').value.trim();
+            const newUrl = document.getElementById('config-sheet-url').value.trim();
+            
+            if(newKey) {
+                localStorage.setItem('app_gemini_key', newKey);
+                aiKey = newKey;
+            } else {
+                localStorage.removeItem('app_gemini_key');
+            }
+
+            if(newUrl) {
+                localStorage.setItem('app_sheet_url', newUrl);
+                googleSheetUrl = newUrl;
+            }
+            
+            closeConfigModal();
+            manualSync(); // Resincronizamos con el nuevo sheet por si acaso
+        }
 
         // Tareas locales
         let tasks = JSON.parse(localStorage.getItem('kanban_tasks')) || [];
@@ -383,7 +447,7 @@
                 if (recognition) recognition.stop();
                 iconEl.className = "fas fa-microphone text-lg";
                 iconEl.classList.remove('mic-active');
-                if(inputEl.value.trim().length > 3) processWithGroq(inputEl.value);
+                if(inputEl.value.trim().length > 3) processWithGemini(inputEl.value);
                 return;
             }
 
@@ -440,9 +504,9 @@
         }
 
         // ==========================================
-        // MOTOR DE IA: GROQ (BLINDADO Y CON SISTEMA DE RESCATE)
+        // MOTOR DE IA: GOOGLE GEMINI (ROBUSTO Y SEGURO)
         // ==========================================
-        async function processWithGroq(text) {
+        async function processWithGemini(text) {
             const statusEl = document.getElementById('ai-status');
             const statusText = document.getElementById('status-text');
             const spinner = document.getElementById('ai-spinner');
@@ -452,29 +516,31 @@
             errorInfo.classList.add('hidden');
             statusText.innerText = "IA procesando campos...";
             spinner.className = "fas fa-bolt animate-pulse text-yellow-400";
+
+            if (!aiKey) {
+                // SISTEMA DE RESCATE SI NO HAY CLAVE
+                document.getElementById('task-title').value = text;
+                setTaskType('normal');
+                statusText.innerText = "Texto pegado sin IA";
+                spinner.className = "fas fa-exclamation-triangle text-yellow-400";
+                errorInfo.innerHTML = `<b>Aviso:</b> Falta la API Key de Gemini. Ve a configuración (⚙️) para añadirla. <br/><i>Tu texto se salvó en el título.</i>`;
+                errorInfo.classList.remove('hidden');
+                return;
+            }
             
             const prompt = `Actúa como un asistente de extracción de datos.
 Texto: "${text}". 
 Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen muy corto", "desc": "detalles completos", "category": "Compras" o "General", "priority": "Alta" o "Baja"}`;
 
             try {
-                // Hacemos la petición directamente a Groq (soporta CORS nativo)
-                const apiUrl = "https://api.groq.com/openai/v1/chat/completions";
+                // Petición a Google Gemini API
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${aiKey}`;
                 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${aiKey}`
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        model: "llama3-8b-8192", // Cambiado a un modelo más estable para JSON
-                        messages: [
-                            { role: "system", content: "You output valid JSON only." },
-                            { role: "user", content: prompt }
-                        ],
-                        temperature: 0.1,
-                        response_format: { type: "json_object" }
+                        contents: [{ parts: [{ text: prompt }] }]
                     })
                 });
 
@@ -484,9 +550,9 @@ Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen 
                 }
 
                 const result = await response.json();
-                let rawContent = result.choices[0].message.content;
+                let rawContent = result.candidates[0].content.parts[0].text;
                 
-                // BLINDAJE: Limpiar el texto en caso de que la IA responda con bloques de código Markdown
+                // BLINDAJE: Limpiar el texto en caso de que la IA responda con bloques de código
                 rawContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
                 
                 const data = JSON.parse(rawContent);
@@ -510,9 +576,9 @@ Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen 
                 setTimeout(() => statusEl.classList.add('hidden'), 3000);
 
             } catch (e) {
-                console.error("Error Groq:", e);
+                console.error("Error Gemini:", e);
                 
-                // SISTEMA DE RESCATE: Si la API de Groq falla, copiamos el dictado directamente al Título
+                // SISTEMA DE RESCATE
                 document.getElementById('task-title').value = text;
                 setTaskType('normal');
                 
@@ -520,8 +586,8 @@ Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen 
                 spinner.className = "fas fa-exclamation-triangle text-yellow-400";
                 
                 let userFriendlyError = e.message;
-                if (userFriendlyError.includes("API key")) {
-                    userFriendlyError = "Tu API Key ha sido bloqueada o es inválida.";
+                if (userFriendlyError.includes("API_KEY_INVALID")) {
+                    userFriendlyError = "Tu API Key es inválida.";
                 }
                 
                 errorInfo.innerHTML = `<b>Aviso IA:</b> ${userFriendlyError}. <br/><i>El texto se pegó en el título para que no lo pierdas.</i>`;
