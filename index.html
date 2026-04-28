@@ -3,1771 +3,806 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de Proformas Tech</title>
+    <title>Centro de Control Diario</title>
+    <!-- VERSIÓN ACTUALIZADA CON OBSERVACIONES BLINDADAS -->
     
-    <!-- Fuentes: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FAVICON: Punto verde con check integrado -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2310b981'/><path d='M30 50 L45 65 L70 35' stroke='white' stroke-width='10' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- html2pdf.js para exportar a PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-    <!-- Iconos -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: {
-                            dark: '#020617',    // Slate 950
-                            corp: '#1e1b4b',    // Indigo 950
-                            tech: '#3b82f6',    // Blue 500
-                            light: '#8b5cf6',   // Violet 500
-                            accent: '#06b6d4',  // Cyan 500
-                            bg: '#f8fafc',      // Slate 50
-                        }
-                    },
-                    backgroundImage: {
-                        'tech-grid': 'radial-gradient(#cbd5e1 1px, transparent 1px)',
-                    }
-                }
-            }
-        }
-    </script>
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #f8fafc; color: #020617; }
-
-        @page { size: A4 portrait; margin: 0; }
-
-        /* Estilo base de la proforma, su tamaño NUNCA cambia en código, solo se le hace zoom */
-        .a4-preview {
-            width: 210mm; min-width: 210mm; max-width: 210mm;
-            height: 297mm; min-height: 297mm; max-height: 297mm;
-            background: transparent; 
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-            margin: 0; padding: 16mm; 
-            position: relative; z-index: 0;
-            overflow: hidden; flex-shrink: 0; 
-            border-radius: 4px;
-        }
-
-        .hide-scrollbar::-webkit-scrollbar { width: 6px; }
-        .hide-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .hide-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
-        .hide-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
-
-        @media print {
-            body * { visibility: hidden; }
-            #preview-section, #preview-section * { visibility: visible; }
-            #preview-section { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; box-shadow: none; border-radius: 0; transform: none !important; }
-            .a4-preview { box-shadow: none; padding: 0; min-height: auto; }
-            .no-print { display: none !important; }
-        }
-
-        input:focus, textarea:focus, select:focus { outline: none; border-color: #06b6d4; box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15); transition: all 0.2s ease; }
-        
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        @media (min-width: 1024px) { .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; } }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f1115; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .task-card { min-height: 60px; border-width: 1px; border-color: #374151; transition: all 0.2s ease; }
+        .task-card:hover { border-color: #4b5563; background-color: #242933; }
+        .mic-active { color: #22d3ee !important; animation: pulse-cyan 1.5s infinite; }
+        @keyframes pulse-cyan { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.15); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
+        #loading-overlay { backdrop-filter: blur(4px); }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden text-sm">
+<body class="bg-[#0f1115] text-slate-200 font-sans h-screen flex flex-col overflow-hidden selection:bg-blue-500/30 text-left">
 
-    <!-- DATALIST PARA AUTOCOMPLETADO (Oculto) -->
-    <datalist id="inventoryList"></datalist>
+    <!-- OVERLAY DE CARGA -->
+    <div id="loading-overlay" class="fixed inset-0 bg-[#0f1115]/80 z-50 flex flex-col justify-center items-center">
+        <div class="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-cyan-400 font-bold tracking-widest uppercase text-sm animate-pulse">Sincronizando con Google Sheets...</p>
+    </div>
 
-    <!-- Header / Navbar -->
-    <header class="bg-white/80 backdrop-blur-md border-b border-gray-200 h-16 flex items-center px-6 justify-between shrink-0 z-20 shadow-sm relative">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-corp to-brand-tech flex items-center justify-center text-white shadow-lg shadow-brand-tech/30">
-                <i data-lucide="cpu" class="w-6 h-6"></i>
-            </div>
+    <!-- CABECERA -->
+    <header class="bg-[#161b22] border-b border-gray-800 p-4 md:px-6 md:py-4 shadow-md z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div class="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8 w-full md:w-auto">
             <div class="flex flex-col">
-                <h1 class="font-black text-xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-brand-corp via-brand-tech to-brand-accent leading-none">ProformaTech</h1>
-                <!-- INDICADOR DE ESTADO DE NUBE -->
-                <div id="cloudSyncIndicator" class="flex items-center gap-1.5 mt-0.5 opacity-90 transition-all duration-300">
-                    <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
-                    <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Nube Conectada</span>
+                <h1 class="text-xl md:text-[22px] font-bold tracking-tight text-white flex items-center gap-2 text-left">
+                    <div class="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-pulse"></div>
+                    Centro de Control
+                </h1>
+                <p class="text-slate-400 text-[11px] md:text-xs capitalize mt-0.5 text-left" id="current-date"></p>
+            </div>
+            <div class="hidden md:block w-px h-10 bg-gray-700"></div>
+            
+            <!-- ESTADÍSTICAS -->
+            <div id="stats-container" class="flex gap-6 md:gap-8 w-full md:w-auto justify-around md:justify-start border-t md:border-t-0 border-gray-800 pt-3 md:pt-0 text-center transition-all">
+                <div class="flex flex-col items-center">
+                    <span class="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Pendientes</span>
+                    <span class="text-lg md:text-xl font-bold text-red-500 leading-none" id="stat-pending">0</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">En Proceso</span>
+                    <span class="text-lg md:text-xl font-bold text-blue-500 leading-none" id="stat-progress">0</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Completadas</span>
+                    <span class="text-lg md:text-xl font-bold text-green-500 leading-none" id="stat-completed">0</span>
                 </div>
             </div>
         </div>
-        <div class="flex items-center gap-2.5 flex-wrap justify-end">
-            <!-- BOTÓN CONTRATOS -->
-            <button onclick="window.openContractModal()" class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl transition-all duration-200 flex items-center gap-2 font-semibold border border-rose-200 shadow-sm hover:shadow">
-                <i data-lucide="file-signature" class="w-4 h-4"></i> Contratos
-            </button>
-            <div class="hidden md:block w-px h-6 bg-gray-200 mx-1"></div>
-
-            <button onclick="window.openCatalogModal()" class="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl transition-all duration-200 flex items-center gap-2 font-semibold border border-slate-200 shadow-sm hover:shadow">
-                <i data-lucide="layers" class="w-4 h-4 text-brand-light"></i> Catálogo
-            </button>
-            <button onclick="window.openProfitModal()" class="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl transition-all duration-200 flex items-center gap-2 font-semibold border border-slate-200 shadow-sm hover:shadow">
-                <i data-lucide="pie-chart" class="w-4 h-4 text-brand-tech"></i> Finanzas
-            </button>
-            <button onclick="window.openHistory()" class="px-3.5 py-2 bg-brand-dark hover:bg-slate-800 text-white rounded-xl transition-all duration-200 flex items-center gap-2 font-semibold shadow-md hover:shadow-lg">
-                <i data-lucide="database" class="w-4 h-4 text-brand-accent"></i> BD Proformas
-            </button>
+        <div class="flex items-center gap-2 md:gap-3 w-full md:w-auto justify-between md:justify-end">
+            <div class="text-xl md:text-2xl font-mono font-bold tracking-widest text-white bg-[#0f1115] px-4 py-1.5 rounded-lg border border-gray-800 hidden lg:block" id="current-time">00:00:00</div>
             
-            <div class="hidden md:block w-px h-6 bg-gray-200 mx-1"></div>
-            
-            <button onclick="window.clearForm()" class="px-3 py-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all duration-200 flex items-center gap-2 font-semibold">
-                <i data-lucide="trash-2" class="w-4 h-4"></i>
-            </button>
-            
-            <button onclick="window.generatePDF(this)" class="px-4 py-2 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white rounded-xl transition-all duration-200 flex items-center gap-2 font-bold shadow-md shadow-orange-500/20 hover:shadow-lg hover:shadow-orange-500/40">
-                <i data-lucide="file-down" class="w-4 h-4"></i> PDF
-            </button>
-            
-            <!-- BOTÓN DE WHATSAPP -->
-            <button onclick="window.sendWhatsApp(this)" class="px-4 py-2 bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#128C7E] hover:to-[#075E54] text-white rounded-xl transition-all duration-200 flex items-center gap-2 font-bold shadow-md shadow-green-500/20 hover:shadow-lg hover:shadow-green-500/40">
-                <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
-                WhatsApp
+            <!-- BOTÓN CONFIGURACIÓN -->
+            <button onclick="openConfigModal()" class="flex justify-center items-center w-10 h-10 md:w-auto md:px-3 md:py-2.5 bg-[#1e293b] hover:bg-[#334155] border border-gray-600 text-gray-400 rounded-md transition-all shadow-md active:scale-95" title="Configuración de APIs">
+                <i class="fas fa-cog"></i>
             </button>
 
-            <button id="btnGuardarApp" onclick="window.saveProforma(this)" class="px-5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl transition-all duration-200 flex items-center gap-2 font-bold shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/40">
-                <i data-lucide="cloud-upload" class="w-4 h-4"></i> Guardar
+            <!-- BOTÓN SINCRONIZAR MANUAL -->
+            <button onclick="manualSync()" class="flex justify-center items-center w-10 h-10 md:w-auto md:px-3 md:py-2.5 bg-[#1e293b] hover:bg-[#334155] border border-blue-500/30 text-blue-400 rounded-md transition-all shadow-md active:scale-95" title="Sincronizar ahora">
+                <i class="fas fa-sync-alt" id="sync-icon"></i><span class="hidden md:inline ml-2 text-sm font-bold">Sync</span>
+            </button>
+
+            <!-- BOTÓN PANTALLA COMPLETA -->
+            <button onclick="toggleFullScreen()" id="btn-fullscreen" class="flex justify-center items-center w-10 h-10 md:w-auto md:px-3 md:py-2.5 bg-gray-800 hover:bg-gray-700 text-slate-300 rounded-md transition-all shadow-md active:scale-95" title="Pantalla Completa">
+                <i class="fas fa-expand"></i>
+            </button>
+
+            <!-- BOTÓN NUEVA TAREA -->
+            <button onclick="openModal()" class="flex-1 md:flex-none flex justify-center items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 md:py-2.5 rounded-md font-bold transition-all text-sm shadow-md active:scale-95 whitespace-nowrap">
+                <i class="fas fa-plus"></i><span class="hidden sm:inline">Nuevo</span>
             </button>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-1 flex overflow-hidden relative bg-slate-50 flex-col lg:flex-row">
-        
-        <!-- LADO IZQUIERDO: Formulario (AHORA MUCHO MÁS ANCHO, 65% del espacio) -->
-        <section class="w-full lg:w-[60%] xl:w-[65%] h-full overflow-y-auto hide-scrollbar p-6 border-r border-gray-200 z-10 bg-white shadow-[10px_0_15px_-3px_rgba(0,0,0,0.02)]">
-            <div class="max-w-4xl mx-auto space-y-6 pb-20"> <!-- Aumentado max-w -->
+    <!-- NAVEGACIÓN DE PESTAÑAS -->
+    <div class="bg-[#161b22] border-b border-gray-800 flex px-2 md:px-6 overflow-x-auto custom-scrollbar">
+        <button onclick="switchView('dashboard')" id="tab-dashboard" class="px-5 py-3 text-sm font-bold border-b-2 border-cyan-500 text-cyan-400 transition-colors flex items-center gap-2 whitespace-nowrap bg-[#0f1115]">
+            <i class="fas fa-tasks"></i> Tablero Principal
+        </button>
+        <button onclick="switchView('shopping')" id="tab-shopping" class="px-5 py-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap">
+            <i class="fas fa-shopping-cart"></i> Lista de Compras
+        </button>
+        <button onclick="switchView('completed')" id="tab-completed" class="px-5 py-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap">
+            <i class="fas fa-check-double"></i> Completadas
+        </button>
+    </div>
 
-                <!-- Fila 1: Cabecera de Proforma -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap gap-4 relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-1 h-full bg-brand-tech"></div>
-                    <div class="flex-1 min-w-[120px]">
-                        <label class="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">N° Proforma</label>
-                        <div class="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 transition-colors focus-within:border-brand-tech focus-within:bg-white">
-                            <span class="text-slate-400 mr-1 font-mono font-bold">PF-</span>
-                            <input type="text" id="f_profNumber" class="w-full bg-transparent font-mono font-black text-brand-corp focus:outline-none" oninput="window.updatePreview()">
-                        </div>
-                    </div>
-                    <div class="flex-1 min-w-[120px]">
-                        <label class="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Fecha</label>
-                        <input type="date" id="f_date" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 font-medium focus:bg-white transition-colors" onchange="window.updatePreview()">
-                    </div>
-                    <div class="flex-1 min-w-[150px]">
-                        <label class="block text-[11px] font-bold text-brand-tech mb-1.5 uppercase tracking-wider">Estado Actual</label>
-                        <select id="f_status" class="w-full bg-blue-50/50 border border-blue-200 rounded-lg px-3 py-2 text-sm text-brand-corp font-bold focus:ring-2 focus:ring-brand-tech/50 transition-colors cursor-pointer">
-                            <option value="Solo Proforma">📝 Solo Proforma</option>
-                            <option value="Aprobado">👍 Aprobado</option>
-                            <option value="Terminado">✅ Terminado</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Fila 2: Cliente -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                    <h2 class="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <div class="p-1.5 bg-slate-100 rounded-md text-brand-tech"><i data-lucide="user" class="w-4 h-4"></i></div> Datos del Cliente
-                    </h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div class="md:col-span-2 lg:col-span-3">
-                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Nombre / Razón Social</label>
-                            <input type="text" id="f_clientName" placeholder="Ej. Juan Pérez" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-medium focus:bg-white transition-all" oninput="window.updatePreview()">
-                        </div>
-                        <div class="lg:col-span-1">
-                            <label class="block text-xs font-medium text-slate-500 mb-1.5">DNI / RUC</label>
-                            <input type="text" id="f_clientDoc" placeholder="Ej. 12345678" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-medium focus:bg-white transition-all" oninput="window.updatePreview()">
-                        </div>
-                        <div class="lg:col-span-1">
-                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Teléfono / Celular</label>
-                            <input type="text" id="f_clientPhone" placeholder="Ej. 987 654 321" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-medium focus:bg-white transition-all" oninput="window.updatePreview()">
-                        </div>
-                        <div class="lg:col-span-1">
-                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Dirección (Opcional)</label>
-                            <input type="text" id="f_clientAddress" placeholder="Dirección del cliente" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-medium focus:bg-white transition-all" oninput="window.updatePreview()">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Fila 3: Productos (TABLA REDISEÑADA PARA MÁS ESPACIO) -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                    <div class="flex justify-between items-center mb-5">
-                        <h2 class="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                            <div class="p-1.5 bg-slate-100 rounded-md text-brand-accent"><i data-lucide="cpu" class="w-4 h-4"></i></div> Componentes
-                        </h2>
-                        <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
-                            <button id="btnModeDetalle" onclick="window.setMode('detalle')" class="px-3 py-1.5 text-xs font-bold rounded-md shadow-sm bg-white text-brand-tech transition-all">Detallado</button>
-                            <button id="btnModeFinal" onclick="window.setMode('final')" class="px-3 py-1.5 text-xs font-semibold rounded-md text-slate-500 hover:text-slate-800 transition-all">Precio Final</button>
-                        </div>
-                    </div>
-
-                    <div id="generalDescContainer" class="hidden mb-5 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl">
-                        <label class="block text-xs font-bold text-brand-corp mb-1.5">Descripción General del Equipo</label>
-                        <input type="text" id="f_generalDesc" placeholder="Ej. PC Gamer Core i7" value="Computadora de Escritorio Alto Rendimiento" class="w-full border border-blue-200 rounded-lg px-3 py-2.5 bg-white font-medium shadow-sm focus:border-brand-tech focus:ring-2 focus:ring-brand-tech/20 transition-all" oninput="window.updatePreview()">
-                    </div>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full mb-4">
-                            <thead>
-                                <tr class="text-left text-[10px] text-slate-400 border-b border-slate-200 uppercase font-black tracking-wider">
-                                    <th class="pb-3 w-16 text-center">Cant</th>
-                                    <th class="pb-3 min-w-[200px]">Descripción (Autocompletable)</th>
-                                    <!-- Aumentado el ancho de Costo y Venta -->
-                                    <th class="pb-3 w-28 lg:w-32 text-orange-500 text-right pr-2">Costo U.</th>
-                                    <th class="pb-3 w-28 lg:w-32 text-emerald-500 text-right pr-2">P. Venta</th>
-                                    <th class="pb-3 w-10 text-center"><i data-lucide="trash-2" class="w-3 h-3 inline"></i></th>
-                                </tr>
-                            </thead>
-                            <tbody id="itemsBody" class="divide-y divide-slate-50">
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <button onclick="window.addItemRow()" class="text-xs font-bold text-brand-tech flex items-center gap-1.5 hover:text-brand-corp bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors">
-                        <i data-lucide="plus" class="w-4 h-4"></i> Agregar Fila
-                    </button>
-                </div>
-
-                <!-- Fila 4: Combos / Precios Manuales -->
-                <div class="bg-gradient-to-br from-slate-800 to-brand-corp p-6 rounded-2xl shadow-md text-white relative overflow-hidden">
-                    <div class="absolute -right-10 -top-10 w-32 h-32 bg-white rounded-full opacity-5 blur-2xl"></div>
-                    <h2 class="text-xs font-black text-blue-200 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <i data-lucide="calculator" class="w-4 h-4"></i> Precios de Paquete / Combo
-                    </h2>
-                    <p class="text-[11px] text-blue-100/70 mb-4">Si armas un paquete y dejas los precios de arriba en 0, usa estos campos para definir tu inversión y venta final.</p>
-                    <div class="flex gap-4">
-                        <div class="relative flex-1">
-                            <label class="block text-[10px] font-bold text-orange-300 mb-1.5 uppercase tracking-wider">Costo Total (Gasto)</label>
-                            <span class="absolute left-3 top-[30px] text-orange-200/50 font-bold">S/</span>
-                            <input type="number" min="0" step="0.01" id="f_manualCost" placeholder="Auto" class="w-full bg-white/10 border border-white/20 rounded-xl pl-8 pr-3 py-2.5 text-sm font-bold text-white placeholder-white/30 focus:border-orange-400 focus:bg-white/20 transition-colors" oninput="window.updatePreview()">
-                        </div>
-                        <div class="relative flex-1">
-                            <label class="block text-[10px] font-bold text-emerald-300 mb-1.5 uppercase tracking-wider">Precio Final (Venta)</label>
-                            <span class="absolute left-3 top-[30px] text-emerald-200/50 font-bold">S/</span>
-                            <input type="number" min="0" step="0.01" id="f_manualTotal" placeholder="Auto" class="w-full bg-white/10 border border-white/20 rounded-xl pl-8 pr-3 py-2.5 text-sm font-bold text-white placeholder-white/30 focus:border-emerald-400 focus:bg-white/20 transition-colors" oninput="window.updatePreview()">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Fila 5: Condiciones -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                    <h2 class="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <div class="p-1.5 bg-slate-100 rounded-md text-brand-light"><i data-lucide="clipboard-list" class="w-4 h-4"></i></div> Condiciones & Pagos
-                    </h2>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Garantía</label>
-                            <input type="text" id="f_obsGarantia" value="12 meses contra defectos de fábrica" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium focus:bg-white transition-colors" oninput="window.updatePreview()">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Tiempo de Entrega</label>
-                            <input type="text" id="f_obsEntrega" value="24 a 48 horas tras confirmación" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium focus:bg-white transition-colors" oninput="window.updatePreview()">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Validez de Proforma</label>
-                            <input type="text" id="f_obsValidez" value="3 días útiles" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium focus:bg-white transition-colors" oninput="window.updatePreview()">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Número Yape / Plin</label>
-                            <input type="text" id="f_yape" value="917 309 964" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-bold focus:bg-white transition-colors text-slate-800" oninput="window.updatePreview()">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Link de QR Oficial (Opcional)</label>
-                            <input type="text" id="f_yape_qr_url" placeholder="Ej. https://i.imgur.com/..." class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium focus:bg-white transition-colors" oninput="window.updatePreview()">
-                        </div>
-                        <div class="col-span-2">
-                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Otras Notas</label>
-                            <input type="text" id="f_obsNotas" placeholder="Opcional..." class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium focus:bg-white transition-colors" oninput="window.updatePreview()">
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- LADO DERECHO: Vista Previa (AHORA SE ESCALA SOLA Y NO ESTORBA) -->
-        <section id="preview-wrapper-section" class="w-full lg:w-[40%] xl:w-[35%] h-full overflow-y-auto bg-slate-200 p-4 lg:p-8 flex justify-center items-start border-l border-slate-300 shadow-inner">
-            
-            <!-- Patrón de fondo tecnológico -->
-            <div class="fixed inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9IiNjYmQ1ZTEiLz48L3N2Zz4=')] opacity-60 z-0 pointer-events-none"></div>
-            
-            <!-- Contenedor Escalador Inteligente -->
-            <div id="preview-scaler" class="origin-top flex justify-center transition-transform duration-200 z-10" style="width: 210mm;">
-                
-                <!-- EL DOCUMENTO A4 EXACTO -->
-                <div id="preview-section" class="a4-preview flex flex-col transition-all duration-300 bg-white">
-                    
-                    <img id="p_bgImage" src="https://i.imgur.com/fObiYn6.png" alt="Fondo Proforma" class="absolute inset-0 w-full h-full object-cover -z-10">
-                    
-                    <div class="flex justify-between items-start mb-8 pb-4 border-b-2 border-brand-corp/30">
-                        <div class="flex items-center gap-6 flex-1 min-w-0">
-                            <div id="p_logoContainer" class="w-48 bg-transparent flex items-center justify-center shrink-0">
-                                <img id="p_uploadedLogo" src="https://i.imgur.com/Dla3rBv.png" alt="KGB Technology Logo" class="max-w-full max-h-24 object-contain">
-                            </div>
-                            <div class="flex-1 min-w-0 flex flex-col justify-center">
-                                <div class="text-gray-800 text-[13px] space-y-1 font-medium">
-                                    <p><strong class="text-gray-900">RAZÓN SOCIAL:</strong> KGB DISTRIBUIDORES</p>
-                                    <p><strong class="text-gray-900">RUC:</strong> 20600094719</p>
-                                    <p><strong class="text-gray-900">DIRECCIÓN:</strong> Jr. 2 de mayo. 477 Int 201</p>
-                                    <p><strong class="text-gray-900">E-MAIL:</strong> ramirez0072@hotmail.com</p>
-                                    <p class="flex items-center gap-2 whitespace-nowrap pt-1">
-                                        <i data-lucide="phone" class="w-4 h-4 text-brand-tech"></i> <span class="font-bold">917 309 964</span> 
-                                        <span class="text-gray-400">|</span> 
-                                        <i data-lucide="message-circle" class="w-4 h-4 text-green-500"></i> <span class="font-bold">917 309 964</span>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="text-right shrink-0 ml-4">
-                            <div class="bg-brand-corp text-white px-5 py-2 rounded-l-full -mr-16 shadow-md">
-                                <h2 class="text-2xl font-black tracking-widest uppercase">PROFORMA</h2>
-                            </div>
-                            <div class="mt-3 pr-2">
-                                <p class="text-sm font-bold text-gray-800">N° <span class="text-brand-tech text-lg">PF-<span id="p_profNumber">0000</span></span></p>
-                                <p class="text-xs text-gray-600 mt-1 font-medium">Fecha: <span id="p_date" class="text-gray-800">09/03/2026</span></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white/60 backdrop-blur-md rounded-lg p-3 mb-4 border border-white/50 flex justify-between items-center shadow-sm">
-                        <div class="space-y-1 flex-1">
-                            <p class="text-[10px] text-brand-light font-bold uppercase tracking-wider mb-0.5">Cliente</p>
-                            <h3 id="p_clientName" class="text-sm font-bold text-brand-dark uppercase truncate pr-4">--------------------</h3>
-                            <div class="flex items-center gap-4 mt-1">
-                                <p class="text-xs text-gray-800 font-medium flex items-center gap-1.5">
-                                    <i data-lucide="credit-card" class="w-3.5 h-3.5 text-brand-tech"></i> 
-                                    <span id="p_clientDoc">--</span>
-                                </p>
-                                <p class="text-xs text-gray-800 font-medium flex items-center gap-1.5">
-                                    <i data-lucide="smartphone" class="w-3.5 h-3.5 text-brand-tech"></i> 
-                                    <span id="p_clientPhone">--</span>
-                                </p>
-                            </div>
-                        </div>
-                        <div class="flex-1 border-l border-brand-corp/20 pl-4 h-full flex flex-col justify-center">
-                            <p class="text-[10px] text-brand-light font-bold uppercase mb-0.5">Dirección</p>
-                            <p id="p_clientAddress" class="text-xs text-gray-800 font-medium">--</p>
-                        </div>
-                    </div>
-
-                    <div class="flex-1">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-brand-corp/90 backdrop-blur-md text-white text-[11px] uppercase tracking-wider">
-                                    <th class="py-2 px-3 font-bold rounded-tl-lg w-16 text-center">Cant</th>
-                                    <th class="py-2 px-3 font-bold">Descripción del Artículo</th>
-                                    <th class="py-2 px-3 font-bold w-24 text-right p-col-price">P. Unit</th>
-                                    <th class="py-2 px-3 font-bold w-32 text-right rounded-tr-lg">Importe</th>
-                                </tr>
-                            </thead>
-                            <tbody id="p_itemsBody" class="text-xs">
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="mt-auto">
-                        <div class="pt-4 border-t border-brand-corp/30 flex justify-between items-end">
-                            
-                            <div class="w-[62%] flex flex-col gap-3">
-                            <div class="text-xs text-gray-900 bg-white/60 backdrop-blur-md p-3 rounded-lg border border-white/50 shadow-sm">
-                                <h4 class="font-bold text-brand-corp mb-1.5 uppercase tracking-wider flex items-center gap-1">
-                                    <i data-lucide="landmark" class="w-3 h-3"></i> Cuentas Bancarias y Billeteras
-                                </h4>
-                                <div class="grid grid-cols-2 gap-x-2 gap-y-1 font-medium mb-3">
-                                    <p class="col-span-2"><strong class="text-gray-900">Titular:</strong> José Leonaldo Vizcarra Ramirez</p>
-                                    <p><strong class="text-gray-900">BBVA Soles:</strong> 0011-0210-0200820446</p>
-                                    <p><strong class="text-gray-900">CCI (S/):</strong> 01121000020082044629</p>
-                                </div>
-                                
-                                <div class="flex items-center gap-3 p-2.5 bg-white border border-slate-200 rounded-lg shadow-sm">
-                                    <div class="w-12 h-12 bg-white p-0.5 rounded shadow-sm border border-slate-200 shrink-0">
-                                        <img id="p_yape_qr" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=917309964" alt="QR Yape Plin" class="w-full h-full object-cover rounded-sm">
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex items-center gap-1.5 mb-1">
-                                            <span class="bg-[#742284] text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase tracking-wider">YAPE</span>
-                                            <span class="bg-[#00E4CC] text-[#002242] text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase tracking-wider">PLIN</span>
-                                        </div>
-                                        <p class="font-black text-lg text-slate-800 leading-none tracking-wide" id="p_yape">917 309 964</p>
-                                        <p class="text-[8px] text-slate-500 font-bold uppercase tracking-wider mt-1">Toma captura a este QR y súbelo a tu app</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="text-xs text-gray-900 bg-white/60 backdrop-blur-md p-3 rounded-lg border border-white/50 shadow-sm">
-                                <h4 class="font-bold text-brand-corp mb-1.5 uppercase tracking-wider flex items-center gap-1">
-                                    <i data-lucide="info" class="w-3 h-3"></i> Condiciones
-                                </h4>
-                                <div class="flex flex-wrap gap-x-5 gap-y-1 font-medium">
-                                    <span><strong class="text-gray-900">Garantía:</strong> <span id="p_obsGarantia"></span></span>
-                                    <span><strong class="text-gray-900">Entrega:</strong> <span id="p_obsEntrega"></span></span>
-                                    <span><strong class="text-gray-900">Validez:</strong> <span id="p_obsValidez"></span></span>
-                                </div>
-                                <div id="p_obsNotasContainer" class="hidden mt-1 font-medium"><strong class="text-gray-900">Notas:</strong> <span id="p_obsNotas"></span></div>
-                            </div>
-                        </div>
-
-                        <div class="w-[35%] space-y-2">
-                            <div class="flex justify-between items-center text-gray-800 font-bold px-4 bg-white/40 backdrop-blur-sm rounded py-1">
-                                <span>Subtotal</span>
-                                <span id="p_subtotal" class="font-mono">S/ 0.00</span>
-                            </div>
-                            <div class="flex justify-between items-center bg-brand-corp text-white p-4 rounded-xl shadow-lg relative overflow-hidden">
-                                <div class="absolute -right-4 -top-4 w-16 h-16 bg-brand-light rounded-full opacity-20"></div>
-                                <span class="font-bold uppercase tracking-wider relative z-10">Total</span>
-                                <span id="p_total" class="text-xl font-black font-mono relative z-10">S/ 0.00</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 text-center bg-white/40 backdrop-blur-sm py-1.5 rounded-lg border border-white/30">
-                        <p class="text-base font-bold text-brand-corp italic shadow-white">¡Gracias por su compra y confianza!</p>
-                    </div>
-                    
-                </div> 
-            </div>
-        </section>
-
-        <!-- 📦 MODAL DE CONTRATOS -->
-        <div id="contractModal" class="hidden fixed inset-0 bg-brand-dark/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div class="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200">
-                <div class="px-6 py-4 border-b border-rose-100 flex justify-between items-center bg-rose-50">
-                    <h2 class="text-xl font-black text-brand-dark flex items-center gap-2 uppercase tracking-wide">
-                        <div class="p-1.5 bg-white rounded shadow-sm text-rose-500"><i data-lucide="file-signature" class="w-5 h-5"></i></div> Generación de Contratos
-                    </h2>
-                    <button onclick="window.closeContractModal()" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                        <i data-lucide="x" class="w-6 h-6"></i>
-                    </button>
-                </div>
-                
-                <div class="p-5 bg-white border-b border-slate-100 shadow-sm">
-                    <p class="text-sm text-slate-600 font-medium"><i data-lucide="info" class="w-4 h-4 inline text-blue-500 mr-1"></i> Aquí solo aparecen las proformas aprobadas o terminadas. <strong>Edita el porcentaje (%) de adelanto</strong> según lo acordado con el cliente.</p>
-                </div>
-
-                <div class="flex-1 overflow-y-auto p-6 bg-slate-50">
-                    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-100 text-slate-500 text-[10px] uppercase font-black tracking-wider border-b border-slate-200">
-                                <tr>
-                                    <th class="py-3 px-4">Fecha</th>
-                                    <th class="py-3 px-4">N° Proforma</th>
-                                    <th class="py-3 px-4">Cliente</th>
-                                    <th class="py-3 px-4 text-right">Venta Total</th>
-                                    <th class="py-3 px-4 text-center text-rose-600">% Adelanto</th>
-                                    <th class="py-3 px-4 text-right text-rose-600">A Pagar (S/)</th>
-                                    <th class="py-3 px-4 text-center">Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody id="contractTableBody" class="text-sm divide-y divide-slate-100">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 📦 MODAL DE CATÁLOGO DE PRODUCTOS -->
-        <div id="catalogModal" class="hidden fixed inset-0 bg-brand-dark/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
-            <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200">
-                <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                    <h2 class="text-xl font-black text-brand-dark flex items-center gap-2 uppercase tracking-wide">
-                        <div class="p-1.5 bg-white rounded shadow-sm text-brand-light"><i data-lucide="layers" class="w-5 h-5"></i></div> Catálogo de Productos
-                    </h2>
-                    <button onclick="window.closeCatalogModal()" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                        <i data-lucide="x" class="w-6 h-6"></i>
-                    </button>
-                </div>
-                
-                <div class="p-5 bg-white border-b border-slate-100 shadow-sm flex flex-wrap gap-3 items-end">
-                    <div class="flex-1 min-w-[250px]">
-                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Descripción del Producto</label>
-                        <input type="text" id="cat_desc" placeholder="Ej. Monitor Samsung 24'' 144Hz" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:bg-white transition-colors">
-                    </div>
-                    <div class="w-32">
-                        <label class="block text-[11px] font-bold text-orange-500 uppercase tracking-wider mb-1.5">Costo (S/)</label>
-                        <input type="number" step="0.01" id="cat_cost" placeholder="0.00" class="w-full bg-orange-50 border border-orange-200 rounded-lg px-3 py-2.5 text-sm focus:bg-white transition-colors text-orange-700 font-bold">
-                    </div>
-                    <div class="w-32">
-                        <label class="block text-[11px] font-bold text-emerald-500 uppercase tracking-wider mb-1.5">Venta (S/)</label>
-                        <input type="number" step="0.01" id="cat_price" placeholder="0.00" class="w-full bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2.5 text-sm focus:bg-white transition-colors text-emerald-700 font-bold">
-                    </div>
-                    <button onclick="window.addCatalogItem()" class="px-5 py-2.5 bg-brand-dark hover:bg-slate-800 text-white font-bold rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2 h-[42px]">
-                        <i data-lucide="plus" class="w-4 h-4"></i> Guardar
-                    </button>
-                </div>
-
-                <div class="flex-1 overflow-y-auto p-5 bg-slate-50">
-                    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-100 text-slate-500 text-[10px] uppercase font-black tracking-wider border-b border-slate-200">
-                                <tr>
-                                    <th class="py-3 px-4">Descripción</th>
-                                    <th class="py-3 px-4 w-24 text-right">Costo</th>
-                                    <th class="py-3 px-4 w-24 text-right">Venta</th>
-                                    <th class="py-3 px-4 w-16 text-center">Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody id="catalogTableBody" class="text-sm divide-y divide-slate-100">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 💰 NUEVO MODAL DE DASHBOARD FINANCIERO -->
-        <div id="profitModal" class="hidden fixed inset-0 bg-brand-dark/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
-            <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-slate-200">
-                <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                    <h2 class="text-xl font-black text-brand-dark flex items-center gap-2 uppercase tracking-wide">
-                        <div class="p-1.5 bg-white rounded shadow-sm text-brand-tech"><i data-lucide="pie-chart" class="w-5 h-5"></i></div> Dashboard de Finanzas
-                    </h2>
-                    <button onclick="window.closeProfitModal()" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                        <i data-lucide="x" class="w-6 h-6"></i>
-                    </button>
-                </div>
-                
-                <div class="p-6 bg-slate-50 flex flex-col gap-6 overflow-y-auto">
-                    
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
-                        <div class="absolute left-0 top-0 w-1 h-full bg-brand-tech"></div>
-                        <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <i data-lucide="target" class="w-4 h-4 text-brand-tech"></i> Proyección de Proforma Actual
-                        </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="flex flex-col justify-center p-4 bg-orange-50/50 rounded-xl border border-orange-100">
-                                <span class="font-bold text-orange-600/80 uppercase text-[10px] tracking-widest flex items-center gap-1.5 mb-1"><i data-lucide="trending-down" class="w-3.5 h-3.5"></i> Inversión (Gasto)</span>
-                                <span id="m_inv" class="text-xl font-black font-mono text-orange-600">S/ 0.00</span>
-                            </div>
-                            <div class="flex flex-col justify-center p-4 bg-blue-50/50 rounded-xl border border-blue-100">
-                                <span class="font-bold text-blue-600/80 uppercase text-[10px] tracking-widest flex items-center gap-1.5 mb-1"><i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i> Total Venta</span>
-                                <span id="m_ven" class="text-xl font-black font-mono text-blue-600">S/ 0.00</span>
-                            </div>
-                            <div class="flex flex-col justify-center p-4 bg-gradient-to-br from-brand-tech to-brand-corp rounded-xl shadow-md relative overflow-hidden text-white">
-                                <div class="absolute -right-4 -top-4 w-16 h-16 bg-white rounded-full opacity-10"></div>
-                                <span class="font-bold text-blue-200 uppercase text-[10px] tracking-widest z-10 mb-1">Ganancia Libre</span>
-                                <span id="m_gan" class="text-2xl font-black font-mono relative z-10">S/ 0.00</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                <i data-lucide="bar-chart-2" class="w-4 h-4 text-emerald-500"></i> Ingresos Reales <span class="text-slate-400 font-normal normal-case tracking-normal">(Solo proformas en 'Terminado')</span>
-                            </h3>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                            
-                            <div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white">
-                                <div class="bg-slate-50 py-3 px-4 border-b border-slate-200">
-                                    <h4 class="font-black text-slate-700 text-xs uppercase tracking-wider flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4 text-slate-400"></i> Hoy</h4>
-                                </div>
-                                <div class="p-4 space-y-4">
-                                    <div>
-                                        <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Ingreso Bruto</p>
-                                        <p id="m_hoy_ingreso" class="text-lg font-mono font-bold text-slate-800">S/ 0.00</p>
-                                    </div>
-                                    <div class="pt-3 border-t border-slate-100">
-                                        <p class="text-[10px] text-emerald-500 uppercase font-bold tracking-wider mb-1">Ganancia Neta</p>
-                                        <p id="m_hoy_ganancia" class="text-2xl font-mono font-black text-emerald-500">S/ 0.00</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="border-2 border-brand-tech/30 rounded-xl overflow-hidden shadow-md relative bg-white transform scale-105 z-10">
-                                <div class="bg-blue-50 py-3 px-4 border-b border-blue-100 flex justify-between items-center">
-                                    <h4 class="font-black text-brand-corp text-xs uppercase tracking-wider flex items-center gap-2"><i data-lucide="calendar-days" class="w-4 h-4 text-brand-tech"></i> Este Mes</h4>
-                                    <span class="bg-brand-tech text-white text-[9px] px-2 py-0.5 rounded shadow-sm font-bold uppercase tracking-wider">Actual</span>
-                                </div>
-                                <div class="p-5 space-y-4">
-                                    <div>
-                                        <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Ingreso Bruto</p>
-                                        <p id="m_mes_ingreso" class="text-xl font-mono font-bold text-slate-800">S/ 0.00</p>
-                                    </div>
-                                    <div class="pt-4 border-t border-slate-100">
-                                        <p class="text-[10px] text-emerald-500 uppercase font-bold tracking-wider mb-1">Ganancia Neta</p>
-                                        <p id="m_mes_ganancia" class="text-3xl font-mono font-black text-emerald-500 drop-shadow-sm">S/ 0.00</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white">
-                                <div class="bg-slate-50 py-3 px-4 border-b border-slate-200">
-                                    <h4 class="font-black text-slate-700 text-xs uppercase tracking-wider flex items-center gap-2"><i data-lucide="calendar-check" class="w-4 h-4 text-slate-400"></i> Este Año</h4>
-                                </div>
-                                <div class="p-4 space-y-4">
-                                    <div>
-                                        <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Ingreso Bruto</p>
-                                        <p id="m_ano_ingreso" class="text-lg font-mono font-bold text-slate-800">S/ 0.00</p>
-                                    </div>
-                                    <div class="pt-3 border-t border-slate-100">
-                                        <p class="text-[10px] text-emerald-500 uppercase font-bold tracking-wider mb-1">Ganancia Neta</p>
-                                        <p id="m_ano_ganancia" class="text-2xl font-mono font-black text-emerald-500">S/ 0.00</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- MODAL DE HISTORIAL Y BASE DE DATOS -->
-        <div id="historyModal" class="hidden fixed inset-0 bg-brand-dark/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
-            <div class="bg-white w-full max-w-6xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200">
-                <div class="px-6 py-4 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center bg-slate-50 gap-4">
-                    <h2 class="text-xl font-black text-brand-dark flex items-center gap-2 uppercase tracking-wide">
-                        <div class="p-1.5 bg-white rounded shadow-sm text-brand-accent"><i data-lucide="database" class="w-5 h-5"></i></div> Base de Datos & Historial
-                    </h2>
-                    <div class="flex items-center gap-3 w-full md:w-auto">
-                        <div class="relative flex-1 md:w-64">
-                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
-                            <input type="text" id="searchHistory" oninput="window.renderHistoryTable()" placeholder="Buscar cliente o N°..." class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:border-brand-tech focus:ring-2 focus:ring-brand-tech/20 outline-none transition-all shadow-sm">
-                        </div>
-                        <button onclick="window.closeHistory()" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors bg-white border border-slate-200 shadow-sm">
-                            <i data-lucide="x" class="w-5 h-5"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-4 gap-4 p-6 bg-white border-b border-slate-100">
-                    <div class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl text-center shadow-sm">
-                        <p class="text-[10px] text-blue-500 font-bold uppercase tracking-widest mb-1.5">Total Cotizado</p>
-                        <p id="h_totalCount" class="text-2xl font-black text-brand-corp">0</p>
-                    </div>
-                    <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl text-center shadow-sm">
-                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">Ventas por Cobrar</p>
-                        <p id="h_totalPendiente" class="text-xl font-black font-mono text-slate-700">S/ 0.00</p>
-                    </div>
-                    <div class="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl text-center shadow-sm">
-                        <p class="text-[10px] text-emerald-600 font-bold uppercase tracking-widest mb-1.5">Ingreso Bruto</p>
-                        <p id="h_totalIngreso" class="text-xl font-black font-mono text-emerald-600">S/ 0.00</p>
-                    </div>
-                    <div class="bg-gradient-to-br from-brand-dark to-brand-corp border border-brand-corp p-4 rounded-xl text-center relative overflow-hidden shadow-md">
-                        <div class="absolute -right-2 -top-2 w-10 h-10 bg-white rounded-full opacity-10"></div>
-                        <p class="text-[10px] text-blue-200 font-bold uppercase tracking-widest mb-1.5">Ganancia Neta Real</p>
-                        <p id="h_totalGanancia" class="text-xl font-black font-mono text-white">S/ 0.00</p>
-                    </div>
-                </div>
-
-                <div class="flex-1 overflow-y-auto p-6 bg-slate-50">
-                    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-100 text-slate-500 text-[10px] uppercase font-black tracking-wider border-b border-slate-200">
-                                <tr>
-                                    <th class="py-3 px-4">Fecha</th>
-                                    <th class="py-3 px-4">Proforma</th>
-                                    <th class="py-3 px-4">Cliente</th>
-                                    <th class="py-3 px-4 text-right">Inversión</th>
-                                    <th class="py-3 px-4 text-right">Venta</th>
-                                    <th class="py-3 px-4 text-right text-brand-tech">Ganancia</th>
-                                    <th class="py-3 px-4 text-center">Estado</th>
-                                    <th class="py-3 px-4 text-center">Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dbTableBody" class="text-sm divide-y divide-slate-50">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+    <main class="flex-1 overflow-x-hidden overflow-y-auto p-3 md:p-6 custom-scrollbar bg-[#0f1115]">
+        <div class="flex flex-col gap-4 md:gap-5 w-full max-w-[1300px] mx-auto pb-10" id="kanban-board"></div>
     </main>
 
-    <!-- 📄 PLANTILLA OCULTA PARA IMPRIMIR EL CONTRATO PDF -->
-    <div id="contract-hidden-container" class="fixed -left-[9999px] top-0">
-        <div id="contract-template" class="a4-preview bg-white flex flex-col" style="padding: 20mm; color: black; border-radius: 0;">
-            <div class="flex justify-between items-center mb-8 border-b-2 border-gray-800 pb-4">
-                <img src="https://i.imgur.com/Dla3rBv.png" alt="Logo" class="h-16 object-contain">
-                <div class="text-right">
-                    <h2 class="text-xl font-black uppercase tracking-widest text-gray-800">CONTRATO DE SERVICIOS</h2>
-                    <p class="text-sm font-bold text-gray-600 mt-1">Ref: <span id="c_profNumber" class="text-brand-tech"></span></p>
-                </div>
+    <!-- MODAL CONFIGURACIÓN -->
+    <div id="config-modal" class="fixed inset-0 bg-black/80 hidden z-50 flex justify-center items-center backdrop-blur-sm p-4 text-left">
+        <div class="bg-[#161b22] border border-gray-700 rounded-xl w-full max-w-lg p-5 md:p-6 shadow-2xl transform transition-all my-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg md:text-xl font-bold text-white uppercase tracking-widest text-xs">Configuración</h2>
+                <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white p-1 transition-colors"><i class="fas fa-times text-xl"></i></button>
             </div>
-
-            <div class="text-sm text-justify space-y-5 leading-relaxed text-gray-800 flex-1">
-                <p>Conste por el presente documento, el <strong>CONTRATO DE COMPRAVENTA Y PRESTACIÓN DE SERVICIOS</strong>, que celebran de una parte <strong>KGB DISTRIBUIDORES</strong> con RUC 20600094719, con domicilio en Jr. 2 de mayo. 477 Int 201, a quien en adelante se le denominará <strong>EL PROVEEDOR</strong>; y de la otra parte <strong><span id="c_clientName" class="uppercase"></span></strong>, identificado con DNI/RUC N° <strong><span id="c_clientDoc"></span></strong>, a quien en adelante se le denominará <strong>EL CLIENTE</strong>; en los términos y condiciones siguientes:</p>
-
-                <p><strong>PRIMERA: OBJETO DEL CONTRATO</strong><br>
-                EL PROVEEDOR se compromete a entregar los equipos de cómputo y/o prestar los servicios técnicos detallados estrictamente en la <strong>Proforma N° <span id="c_profNumber_2"></span></strong>, de fecha <span id="c_date"></span>, la cual ha sido aprobada y forma parte integral de este contrato.</p>
-
-                <p><strong>SEGUNDA: CONTRAPRESTACIÓN Y FORMA DE PAGO</strong><br>
-                El precio total acordado por los bienes y servicios descritos asciende a la suma de <strong>S/ <span id="c_total"></span></strong> (Soles).</p>
-
-                <!-- ESTE CONTENEDOR SE LLENA DINÁMICAMENTE CON LOS PORCENTAJES CORRECTOS -->
-                <div id="c_payment_terms"></div>
-
-                <p><strong>TERCERA: GARANTÍA Y CONDICIONES</strong><br>
-                Los equipos cuentan con una garantía contra defectos de fábrica. El tiempo estimado de entrega y validez del acuerdo se rige estrictamente por lo indicado en la proforma original. Toda modificación al requerimiento inicial solicitada por EL CLIENTE generará un reajuste en los costos y tiempos de entrega.</p>
-
-                <p>En señal de conformidad absoluta con todos los términos del presente contrato, ambas partes proceden a firmar el presente documento.</p>
-            </div>
-
-            <div class="mt-24 pt-8 flex justify-around items-end pb-10">
-                <div class="w-64 text-center mt-6">
-                    <div class="border-t border-gray-800 pt-2 font-bold text-sm">José Leonaldo Vizcarra Ramirez</div>
-                    <div class="text-xs text-gray-500">DNI: 44865369<br>Gerente General - KGB DISTRIBUIDORES</div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider text-[10px]">Google Gemini API Key (Para Inteligencia Artificial)</label>
+                    <input type="password" id="config-api-key" placeholder="AIzaSy..." class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none text-sm">
+                    <p class="text-[9px] text-slate-500 mt-1">Genera tu clave gratuita y segura en <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-cyan-400 underline">aistudio.google.com/app/apikey</a></p>
                 </div>
-                <div class="w-64 text-center mt-6">
-                    <div class="border-t border-gray-800 pt-2 font-bold text-sm uppercase truncate"><span id="c_clientName_sign"></span></div>
-                    <div class="text-xs text-gray-500">DNI/RUC: <span id="c_clientDoc_sign"></span><br>EL CLIENTE</div>
+                <div>
+                    <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider text-[10px]">URL de Google Sheets</label>
+                    <input type="text" id="config-sheet-url" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none text-sm">
                 </div>
-            </div>
-            
-            <div class="mt-auto text-center border-t border-gray-300 pt-4 text-xs text-gray-400">
-                Documento generado automáticamente por ProformaTech - KGB Distribuidores
+                <div class="flex justify-end mt-6 pt-4 border-t border-gray-800">
+                    <button onclick="closeConfigModal()" class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white transition-colors mr-2">Cancelar</button>
+                    <button onclick="saveConfig()" class="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg shadow-lg active:scale-95 transition-all">Guardar Cambios</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- FIREBASE & LÓGICA DE LA APLICACIÓN -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- MODAL OBSERVACIÓN -->
+    <div id="obs-modal" class="fixed inset-0 bg-black/80 hidden z-50 flex justify-center items-center backdrop-blur-sm p-4 text-left">
+        <div class="bg-[#161b22] border border-gray-700 rounded-xl w-full max-w-lg p-5 md:p-6 shadow-2xl transform transition-all my-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg md:text-xl font-bold text-white uppercase tracking-widest text-xs">📝 Añadir Observación</h2>
+                <button type="button" onclick="closeObsModal()" class="text-slate-400 hover:text-white p-1 transition-colors"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <form id="obs-form" class="space-y-4">
+                <input type="hidden" id="obs-task-id">
+                <div>
+                    <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider text-[10px]" id="obs-task-title">Tarea</label>
+                    <textarea id="obs-text" rows="4" placeholder="Escribe aquí las observaciones, detalles o notas finales sobre esta tarea..." class="w-full bg-[#0f1115] border border-cyan-500/50 rounded-lg px-3 py-3 text-white focus:border-cyan-400 outline-none transition-colors shadow-inner text-sm custom-scrollbar"></textarea>
+                </div>
+                <div class="flex justify-end pt-2">
+                    <button type="button" onclick="closeObsModal()" class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white transition-colors mr-2">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg shadow-lg active:scale-95 transition-all">Guardar Observación</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        // URL ÚNICA DE GOOGLE SHEETS PARA EVITAR ERRORES DE SINCRONIZACIÓN
-        window.WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwxkzSNkxnoJKF8JrFrRDMMwf97vTRJlc-wWHC8epyL9Ix8fZ549edj-WiqtpqnqyKpYg/exec";
+    <!-- MODAL NUEVA TAREA / COMPRA (ENTRADA RÁPIDA) -->
+    <div id="task-modal" class="fixed inset-0 bg-black/80 hidden z-50 flex justify-center items-center backdrop-blur-sm overflow-y-auto p-4 text-left">
+        <div class="bg-[#161b22] border border-gray-700 rounded-xl w-full max-w-lg p-5 md:p-6 shadow-2xl transform transition-all my-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg md:text-xl font-bold text-white uppercase tracking-widest text-xs">Añadir Registro</h2>
+                <button type="button" onclick="closeModal()" class="text-slate-400 hover:text-white p-1 transition-colors"><i class="fas fa-times text-xl"></i></button>
+            </div>
 
-        // CONFIGURACIÓN MANUAL DE FIREBASE (Por si quieres enlazar tu propia base de datos en GitHub)
-        const customFirebaseConfig = {
-            // apiKey: "TU_API_KEY",
-            // authDomain: "TU_AUTH_DOMAIN",
-            // projectId: "TU_PROJECT_ID",
-            // storageBucket: "TU_STORAGE_BUCKET",
-            // messagingSenderId: "TU_MESSAGING_SENDER_ID",
-            // appId: "TU_APP_ID"
-        };
+            <!-- ASISTENTE DE VOZ -->
+            <div class="mb-5 p-4 bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-500/30 rounded-xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-500 to-blue-500"></div>
+                <label class="block text-sm font-bold text-cyan-400 mb-1 flex items-center gap-2 uppercase tracking-tighter">
+                    <i class="fas fa-microphone-lines"></i> Dictado Inteligente
+                </label>
+                <div class="flex gap-2 mt-2">
+                    <div class="relative flex-1">
+                        <textarea id="ai-input" placeholder="Hable libremente. El texto se acumulará..." rows="3" class="w-full bg-[#0f1115] border border-cyan-500/50 rounded-lg pl-3 pr-12 py-3 text-white focus:border-cyan-400 outline-none text-sm resize-none custom-scrollbar transition-all"></textarea>
+                        <button type="button" onclick="toggleSmartDictation()" class="absolute right-2 bottom-2 w-10 h-10 flex justify-center items-center bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-400 rounded-md transition-all group" id="btn-smart-mic">
+                            <i class="fas fa-microphone text-lg" id="mic-icon"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="ai-status" class="text-[11px] text-cyan-400 mt-2 font-mono font-bold hidden flex flex-col gap-1">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-bolt animate-pulse text-yellow-400" id="ai-spinner"></i> <span id="status-text">Escuchando...</span>
+                    </div>
+                    <div id="api-error-info" class="text-[9px] text-red-400 italic hidden border-t border-red-900/30 pt-1 mt-1"></div>
+                </div>
+            </div>
 
-        lucide.createIcons();
+            <form id="new-task-form" class="space-y-4 md:space-y-5">
+                <!-- BOTONES DE ENTRADA RÁPIDA -->
+                <div>
+                    <label class="block font-semibold text-slate-400 mb-2 uppercase tracking-wider text-[10px]">¿Qué deseas añadir?</label>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="setTaskType('normal')" id="btn-type-normal" class="flex-1 py-2.5 rounded border border-cyan-500 bg-cyan-500/20 text-cyan-300 text-xs font-bold transition-all shadow-inner">💼 Tarea</button>
+                        <button type="button" onclick="setTaskType('urgente')" id="btn-type-urgente" class="flex-1 py-2.5 rounded border border-gray-700 bg-[#0f1115] hover:bg-gray-800 text-gray-400 text-xs font-bold transition-all">🔥 Urgente</button>
+                        <button type="button" onclick="setTaskType('compra')" id="btn-type-compra" class="flex-1 py-2.5 rounded border border-gray-700 bg-[#0f1115] hover:bg-gray-800 text-gray-400 text-xs font-bold transition-all">🛒 Compra</button>
+                    </div>
+                    <input type="hidden" id="task-type" value="normal">
+                </div>
 
-        // MOTOR DE ESCALADO INTELIGENTE DE LA VISTA PREVIA
-        window.adjustPreviewScale = () => {
-            const wrapper = document.getElementById('preview-wrapper-section');
-            const scaler = document.getElementById('preview-scaler');
-            if(wrapper && scaler) {
-                // Ancho real de A4 en px es aprox 794px. Damos un margen de 32px (16px por lado).
-                const availableWidth = wrapper.clientWidth - 32;
-                const a4Width = 794; 
-                let scale = availableWidth / a4Width;
+                <div class="text-left text-xs">
+                    <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider" id="label-title">Título / Artículo</label>
+                    <input type="text" id="task-title" required autocomplete="off" placeholder="Ej: Revisar correos, Cinta aislante..." class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-3 text-white focus:border-cyan-500 outline-none transition-colors shadow-inner text-sm">
+                </div>
                 
-                // No agrandar más del 100%
-                if(scale > 1) scale = 1;
-
-                scaler.style.transform = `scale(${scale})`;
-                // El alto de A4 es aprox 1123px. Ajustamos el height del wrapper para que no quede espacio en blanco abajo
-                scaler.style.height = `${1123 * scale}px`;
-                scaler.style.width = `${a4Width}px`; 
-            }
-        };
-        window.addEventListener('resize', window.adjustPreviewScale);
-
-        // MOTOR DE ADAPTABILIDAD
-        let isConnectedToFirebase = false;
-        let app, auth, db;
-        let currentUser = null;
-        let proformasList = []; 
-        let productCatalog = []; 
-        
-        // Variable para saber si estamos editando una proforma antigua
-        window.currentEditId = null;
-
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-proforma-app';
-
-        try {
-            if (customFirebaseConfig.apiKey || (typeof __firebase_config !== 'undefined' && __firebase_config)) {
-                // Entorno Firebase (Manual o Gemini)
-                const firebaseConfig = customFirebaseConfig.apiKey ? customFirebaseConfig : JSON.parse(__firebase_config);
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                isConnectedToFirebase = true;
-
-                const initAuth = async () => {
-                    try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
-                    } catch(e) { console.error("Auth error:", e); }
-                };
-                initAuth();
-
-                onAuthStateChanged(auth, (user) => {
-                    currentUser = user;
-                    if (user) { 
-                        loadHistoryData(); 
-                    }
-                });
-            } else {
-                // Entorno Externo (GitHub Pages)
-                console.log("Modo Externo (GitHub): Firebase omitido. Usando memoria temporal y Google Sheets.");
-                currentUser = { uid: 'github_user' };
+                <div class="text-left text-xs">
+                    <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider" id="label-desc">Descripción o Detalles</label>
+                    <textarea id="task-desc" rows="2" placeholder="Opcional..." class="w-full bg-[#0f1115] border border-gray-800 rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none transition-colors"></textarea>
+                </div>
                 
-                const savedProformas = localStorage.getItem('proformasList_kgb');
-                if (savedProformas) {
-                    try { proformasList = JSON.parse(savedProformas); } catch(e) { }
-                }
+                <div class="text-left text-xs" id="category-container">
+                    <label class="block font-semibold text-slate-400 mb-1 uppercase">Categoría</label>
+                    <input type="text" id="task-cat" value="General" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white outline-none">
+                </div>
 
-                const savedCatalog = localStorage.getItem('productCatalog_kgb');
-                if (savedCatalog) {
-                    try { productCatalog = JSON.parse(savedCatalog); } catch(e) { }
-                }
+                <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-800">
+                    <span class="text-slate-600 italic text-[10px] hidden md:block">Fecha y hora automáticas</span>
+                    <div class="flex gap-3 w-full md:w-auto justify-end">
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white transition-colors">Cancelar</button>
+                        <button type="submit" class="px-8 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg shadow-lg active:scale-95 transition-all">Guardar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 
-                setTimeout(() => {
-                    renderHistoryTable(); 
-                    renderCatalogTable(); 
-                    updateDatalist();     
-                }, 500);
-            }
-        } catch(error) {
-            console.error("Error Init:", error);
+    <script>
+        // --- ESTADO DE LA VISTA ---
+        let currentView = 'dashboard'; 
+
+        // --- CONFIGURACIÓN DINÁMICA ---
+        let aiKey = localStorage.getItem('app_gemini_key') || "AIzaSyAS994jGxpb0-X9S6pnuC5BDhrRaGiMBEo"; 
+        let googleSheetUrl = localStorage.getItem('app_sheet_url') || "https://script.google.com/macros/s/AKfycbxrXvFXX12zA76XRhUabS1a_FpW1sRT6p3tOnT4ngS5nzYWn0bzAPZizp3-oTNaXQZG/exec";
+
+        function openConfigModal() {
+            document.getElementById('config-modal').classList.remove('hidden');
+            document.getElementById('config-api-key').value = localStorage.getItem('app_gemini_key') || "";
+            document.getElementById('config-sheet-url').value = googleSheetUrl;
         }
 
-        let items = [
-            { id: 1, qty: 1, desc: '', cost: 0, price: 0 } 
-        ];
-        let viewMode = 'detalle';
+        function closeConfigModal() {
+            document.getElementById('config-modal').classList.add('hidden');
+        }
 
-        // LECTURA DESDE GOOGLE SHEETS
-        window.fetchGoogleSheetsData = async () => {
-            window.currentEditId = null; // Reseteamos modo edición
-            const input = document.getElementById('f_profNumber');
-            if (input.value === "") input.value = "..."; 
+        function saveConfig() {
+            const newKey = document.getElementById('config-api-key').value.trim();
+            const newUrl = document.getElementById('config-sheet-url').value.trim();
             
+            if(newKey) {
+                localStorage.setItem('app_gemini_key', newKey);
+                aiKey = newKey;
+            } else {
+                localStorage.removeItem('app_gemini_key');
+            }
+
+            if(newUrl) {
+                localStorage.setItem('app_sheet_url', newUrl);
+                googleSheetUrl = newUrl;
+            }
+            
+            closeConfigModal();
+            manualSync(); 
+        }
+
+        let tasks = JSON.parse(localStorage.getItem('kanban_tasks')) || [];
+
+        const COLUMNS = [
+            { id: 'Prioridad Alta', title: '🔥 PRIORIDAD ALTA', bg: 'bg-[#1f1616]' },
+            { id: 'En Proceso', title: '⚙️ EN PROCESO', bg: 'bg-[#161c22]' },
+            { id: 'Pendientes', title: '📋 PENDIENTES / OTROS', bg: 'bg-[#1a1a1a]' },
+            { id: 'Compras', title: '🛒 PARA COMPRAR', bg: 'bg-[#1e1a24]' },
+            { id: 'Completadas', title: '✅ COMPLETADAS', bg: 'bg-[#161f18]' }
+        ];
+
+        // ==========================================
+        // SISTEMA DE PESTAÑAS (VISTAS)
+        // ==========================================
+        function switchView(view) {
+            currentView = view;
+            const tabDash = document.getElementById('tab-dashboard');
+            const tabShop = document.getElementById('tab-shopping');
+            const tabComp = document.getElementById('tab-completed');
+            const statsContainer = document.getElementById('stats-container');
+            
+            const inactiveClass = "px-5 py-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap";
+
+            tabDash.className = inactiveClass;
+            tabShop.className = inactiveClass;
+            if(tabComp) tabComp.className = inactiveClass;
+
+            if (view === 'dashboard') {
+                tabDash.className = "px-5 py-3 text-sm font-bold border-b-2 border-cyan-500 text-cyan-400 transition-colors flex items-center gap-2 whitespace-nowrap bg-[#0f1115]";
+                statsContainer.style.display = 'flex'; 
+            } else if (view === 'shopping') {
+                tabShop.className = "px-5 py-3 text-sm font-bold border-b-2 border-purple-500 text-purple-400 transition-colors flex items-center gap-2 whitespace-nowrap bg-[#0f1115]";
+                statsContainer.style.display = 'none'; 
+            } else if (view === 'completed') {
+                if(tabComp) tabComp.className = "px-5 py-3 text-sm font-bold border-b-2 border-green-500 text-green-400 transition-colors flex items-center gap-2 whitespace-nowrap bg-[#0f1115]";
+                statsContainer.style.display = 'none'; 
+            }
+            
+            renderBoard();
+        }
+
+        // ==========================================
+        // CONEXIÓN CON GOOGLE SHEETS
+        // ==========================================
+        async function fetchTasksFromSheets() {
             try {
-                const response = await fetch(window.WEBHOOK_URL);
+                const response = await fetch(googleSheetUrl);
                 const data = await response.json();
                 
-                // 1. Cargar número consecutivo
-                const nextNum = data.next || 1;
-                input.value = String(nextNum).padStart(4, '0');
-                window.updatePreview();
-
-                // 2. Cargar Catálogo de Productos (Eliminamos la lectura del historial para no corromper la memoria local)
-                if (data.products && data.products.length > 0) {
-                    const uniqueProducts = [...productCatalog]; 
-                    const descSet = new Set(productCatalog.map(p => (p.desc || '').toLowerCase()));
-                    
-                    data.products.forEach((p, i) => {
-                        const safeDesc = p.desc || '';
-                        if(!descSet.has(safeDesc.toLowerCase())) {
-                            descSet.add(safeDesc.toLowerCase());
-                            uniqueProducts.push({
-                                id: 'gs_' + i,
-                                desc: safeDesc,
-                                cost: p.cost || 0,
-                                price: p.price || 0
-                            });
-                        }
+                if(Array.isArray(data)) {
+                    tasks = data.map(task => {
+                        if (task.date && task.date.includes('T')) task.date = task.date.split('T')[0];
+                        if (task.time && task.time.includes('T')) task.time = task.time.split('T')[1].substring(0, 5);
+                        else if (task.time && task.time.length > 5) task.time = task.time.substring(0, 5);
+                        return task;
                     });
-                    
-                    productCatalog = uniqueProducts;
-                    localStorage.setItem('productCatalog_kgb', JSON.stringify(productCatalog));
-                    renderCatalogTable();
-                    updateDatalist();
+                    saveTasks(); 
                 }
-
-                window.setCloudStatus('success'); 
             } catch (error) {
-                console.error("Error obteniendo datos:", error);
-                window.setCloudStatus('error'); 
-                const randomNum = Math.floor(Math.random() * 9000) + 1000;
-                if (input.value === "...") input.value = randomNum.toString();
-                window.updatePreview();
+                console.error("Error al cargar desde Google Sheets:", error);
+            } finally {
+                document.getElementById('loading-overlay').style.display = 'none';
+                renderBoard();
             }
-        };
+        }
 
-        window.initDefaults = () => {
+        function sendToGoogleSheets(taskData) {
+            fetch(googleSheetUrl, {
+                method: 'POST',
+                mode: 'no-cors', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(taskData)
+            }).then(() => {
+                console.log("Cambio sincronizado con éxito.");
+            }).catch(console.error);
+        }
+
+        function saveTasks() {
+            localStorage.setItem('kanban_tasks', JSON.stringify(tasks));
+        }
+
+        // ==========================================
+        // UI Y RELOJ
+        // ==========================================
+        function manualSync() {
+            const icon = document.getElementById('sync-icon');
+            if(icon) icon.classList.add('animate-spin'); 
+            document.getElementById('loading-overlay').style.display = 'flex';
+            
+            fetchTasksFromSheets().finally(() => {
+                if(icon) icon.classList.remove('animate-spin'); 
+            });
+        }
+
+        function toggleFullScreen() {
+            const icon = document.querySelector('#btn-fullscreen i');
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(e => console.error(e));
+                if(icon) { icon.classList.remove('fa-expand'); icon.classList.add('fa-compress'); }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                    if(icon) { icon.classList.remove('fa-compress'); icon.classList.add('fa-expand'); }
+                }
+            }
+        }
+
+        function updateClock() {
             const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
-            document.getElementById('f_date').value = `${yyyy}-${mm}-${dd}`;
+            document.getElementById('current-time').innerText = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('current-date').innerText = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function renderBoard() {
+            const board = document.getElementById('kanban-board');
+            if(!board) return;
+            board.innerHTML = '';
             
-            window.fetchGoogleSheetsData();
-            window.renderItems();
-            setTimeout(window.adjustPreviewScale, 100); // Ajustar el diseño en cuanto carga
-        };
+            document.getElementById('stat-pending').innerText = tasks.filter(t => t.status === 'Pendientes' || t.status === 'Prioridad Alta').length;
+            document.getElementById('stat-progress').innerText = tasks.filter(t => t.status === 'En Proceso').length;
+            document.getElementById('stat-completed').innerText = tasks.filter(t => t.status === 'Completadas' && t.category !== 'Compras').length;
 
-        window.setMode = (mode) => {
-            viewMode = mode;
-            const btnDetalle = document.getElementById('btnModeDetalle');
-            const btnFinal = document.getElementById('btnModeFinal');
-            const descContainer = document.getElementById('generalDescContainer');
-
-            if (mode === 'detalle') {
-                btnDetalle.className = "px-3 py-1.5 text-xs font-bold rounded-md shadow-sm bg-white text-brand-tech transition-all";
-                btnFinal.className = "px-3 py-1.5 text-xs font-semibold rounded-md text-slate-500 hover:text-slate-800 transition-all bg-transparent";
-                descContainer.classList.add('hidden');
-            } else {
-                btnFinal.className = "px-3 py-1.5 text-xs font-bold rounded-md shadow-sm bg-white text-brand-tech transition-all";
-                btnDetalle.className = "px-3 py-1.5 text-xs font-semibold rounded-md text-slate-500 hover:text-slate-800 transition-all bg-transparent";
-                descContainer.classList.remove('hidden');
-            }
-            window.updatePreview();
-        };
-
-        window.renderItems = () => {
-            const tbody = document.getElementById('itemsBody');
-            tbody.innerHTML = '';
-            items.forEach((item) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="pr-2 pb-3">
-                        <input type="number" min="1" value="${item.qty}" onchange="window.updateItem(${item.id}, 'qty', this.value)" class="w-full min-w-[50px] border border-slate-200 bg-slate-50 focus:bg-white rounded-lg px-2 py-2 text-sm text-center font-bold focus:border-brand-tech transition-colors">
-                    </td>
-                    <td class="pr-2 pb-3">
-                        <input type="text" list="inventoryList" placeholder="Descripción" value="${item.desc}" oninput="window.updateItem(${item.id}, 'desc', this.value)" class="w-full min-w-[150px] border border-slate-200 bg-slate-50 focus:bg-white rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-tech transition-colors">
-                    </td>
-                    <td class="pr-2 pb-3">
-                        <div class="relative min-w-[90px]">
-                            <span class="absolute left-2.5 top-2 text-slate-400 font-bold">S/</span>
-                            <input type="number" id="cost_${item.id}" min="0" step="0.01" placeholder="Costo" value="${item.cost || ''}" oninput="window.updateItem(${item.id}, 'cost', this.value)" class="w-full bg-orange-50 border border-orange-200 text-orange-700 font-bold rounded-lg pl-8 pr-2 py-2 text-sm focus:bg-white focus:border-orange-500 transition-colors">
-                        </div>
-                    </td>
-                    <td class="pr-2 pb-3">
-                        <div class="relative min-w-[90px]">
-                            <span class="absolute left-2.5 top-2 text-slate-400 font-bold">S/</span>
-                            <input type="number" id="price_${item.id}" min="0" step="0.01" placeholder="Venta" value="${item.price || ''}" oninput="window.updateItem(${item.id}, 'price', this.value)" class="w-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold rounded-lg pl-8 pr-2 py-2 text-sm focus:bg-white focus:border-emerald-500 transition-colors">
-                        </div>
-                    </td>
-                    <td class="pb-3 text-right">
-                        <button onclick="window.removeItem(${item.id})" class="text-red-400 hover:text-red-600 p-1.5 bg-red-50 hover:bg-red-100 rounded-md transition-colors" title="Eliminar">
-                            <i data-lucide="x" class="w-4 h-4"></i>
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-            lucide.createIcons();
-            window.updatePreview();
-        };
-
-        window.updateItem = (id, field, value) => {
-            const item = items.find(i => i.id === id);
-            if (item) {
-                if (field === 'desc') {
-                    item[field] = value;
-                    const foundProd = productCatalog.find(p => (p.desc || '').toLowerCase() === value.trim().toLowerCase());
-                    if (foundProd) {
-                        item.cost = foundProd.cost;
-                        item.price = foundProd.price;
-                        document.getElementById(`cost_${id}`).value = foundProd.cost;
-                        document.getElementById(`price_${id}`).value = foundProd.price;
-                    }
-                } else {
-                    item[field] = parseFloat(value) || 0;
-                }
-                window.updatePreview();
-            }
-        };
-
-        window.addItemRow = () => {
-            const newId = items.length > 0 ? Math.max(...items.map(i => i.id)) + 1 : 1;
-            items.push({ id: newId, qty: 1, desc: '', cost: 0, price: 0 });
-            window.renderItems();
-        };
-
-        window.removeItem = (id) => {
-            items = items.filter(i => i.id !== id);
-            window.renderItems();
-        };
-
-        window.getCalculatedTotals = () => {
-            let totalCost = items.reduce((sum, item) => sum + (item.qty * (item.cost || 0)), 0);
-            let totalVenta = items.reduce((sum, item) => sum + (item.qty * (item.price || 0)), 0);
-
-            const manualCostInput = document.getElementById('f_manualCost')?.value;
-            const manualTotalInput = document.getElementById('f_manualTotal')?.value;
-
-            if (manualCostInput && manualCostInput.trim() !== '') totalCost = parseFloat(manualCostInput) || 0;
-            if (manualTotalInput && manualTotalInput.trim() !== '') totalVenta = parseFloat(manualTotalInput) || 0;
-
-            return { cost: totalCost, venta: totalVenta, ganancia: totalVenta - totalCost };
-        };
-
-        window.updatePreview = () => {
-            const syncText = (fromId, toId, defaultText = '') => {
-                const val = document.getElementById(fromId).value.trim();
-                document.getElementById(toId).innerText = val || defaultText;
-            };
-
-            syncText('f_clientName', 'p_clientName', '--------------------');
-            syncText('f_clientDoc', 'p_clientDoc', 'Sin DNI/RUC');
-            syncText('f_clientPhone', 'p_clientPhone', 'Sin teléfono');
-            syncText('f_clientAddress', 'p_clientAddress', 'Sin dirección registrada');
-            
-            const num = document.getElementById('f_profNumber').value.trim();
-            document.getElementById('p_profNumber').innerText = num || '0000';
-            
-            const dateVal = document.getElementById('f_date').value;
-            if(dateVal) {
-                const [y, m, d] = dateVal.split('-');
-                document.getElementById('p_date').innerText = `${d}/${m}/${y}`;
+            let visibleColumns = [];
+            if (currentView === 'dashboard') {
+                visibleColumns = COLUMNS.filter(c => c.id !== 'Compras' && c.id !== 'Completadas'); 
+            } else if (currentView === 'shopping') {
+                visibleColumns = COLUMNS.filter(c => c.id === 'Compras'); 
+            } else if (currentView === 'completed') {
+                visibleColumns = COLUMNS.filter(c => c.id === 'Completadas'); 
             }
 
-            syncText('f_obsGarantia', 'p_obsGarantia', 'No especificada');
-            syncText('f_obsEntrega', 'p_obsEntrega', 'No especificada');
-            syncText('f_obsValidez', 'p_obsValidez', 'No especificada');
-            syncText('f_yape', 'p_yape', '917 309 964');
-
-            // Actualizar QR de Yape (Usa el oficial si hay link, sino genera uno básico)
-            const yapeQrUrl = document.getElementById('f_yape_qr_url').value.trim();
-            if (yapeQrUrl) {
-                document.getElementById('p_yape_qr').src = yapeQrUrl;
-            } else {
-                const yapeNum = document.getElementById('f_yape').value.trim() || '917309964';
-                document.getElementById('p_yape_qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${yapeNum.replace(/\s+/g, '')}`;
-            }
-            
-            const notas = document.getElementById('f_obsNotas').value.trim();
-            const notasContainer = document.getElementById('p_obsNotasContainer');
-            if(notas) {
-                document.getElementById('p_obsNotas').innerText = notas;
-                notasContainer.classList.remove('hidden');
-            } else {
-                notasContainer.classList.add('hidden');
-            }
-
-            const pBody = document.getElementById('p_itemsBody');
-            pBody.innerHTML = '';
-            
-            let sumVenta = 0;
-            const priceHeader = document.querySelector('.p-col-price');
-
-            if (viewMode === 'detalle') {
-                priceHeader.style.display = ''; 
-                items.forEach((item, index) => {
-                    const rowTotal = item.qty * item.price;
-                    sumVenta += rowTotal;
-                    
-                    const displayPrice = item.price > 0 ? `S/ ${item.price.toFixed(2)}` : '';
-                    const displayRowTotal = rowTotal > 0 ? `S/ ${rowTotal.toFixed(2)}` : '';
-                    
-                    const tr = document.createElement('tr');
-                    tr.className = index % 2 === 0 ? 'bg-white/70 backdrop-blur-sm' : 'bg-white/40 backdrop-blur-sm';
-                    tr.innerHTML = `
-                        <td class="py-1.5 px-3 text-center font-bold text-gray-800 border-l border-white/50">${item.qty}</td>
-                        <td class="py-1.5 px-3 font-semibold text-gray-900">${item.desc || '-'}</td>
-                        <td class="py-1.5 px-3 text-right text-gray-900 font-mono p-col-price">${displayPrice}</td>
-                        <td class="py-1.5 px-3 text-right font-bold text-brand-dark font-mono border-r border-white/50">${displayRowTotal}</td>
-                    `;
-                    pBody.appendChild(tr);
-                });
-            } else {
-                priceHeader.style.display = 'none'; 
-                items.forEach(item => { sumVenta += (item.qty * item.price); });
-
-                const generalDesc = document.getElementById('f_generalDesc').value || 'Equipo Tecnológico según requerimientos';
-                const manualVal = document.getElementById('f_manualTotal')?.value;
-                let finalTotalResumen = sumVenta;
-                if (manualVal && manualVal.trim() !== '') finalTotalResumen = parseFloat(manualVal) || 0;
+            visibleColumns.forEach(col => {
+                const colTasks = tasks.filter(t => t.status === col.id);
                 
-                const displayTotalResumen = finalTotalResumen > 0 ? `S/ ${finalTotalResumen.toFixed(2)}` : '';
+                let titleText = col.title;
+                if (currentView === 'shopping') titleText = '🛒 TU LISTA DE COMPRAS';
+                if (currentView === 'completed') titleText = '✅ TAREAS FINALIZADAS';
 
-                const tr = document.createElement('tr');
-                tr.className = 'bg-white/70 backdrop-blur-sm border-b border-white/50';
-                tr.innerHTML = `
-                    <td class="py-3 px-3 text-center font-bold text-gray-800 border-l border-white/50">1</td>
-                    <td class="py-3 px-3 font-bold text-brand-tech text-sm">${generalDesc}</td>
-                    <td class="py-3 px-3 text-right font-black text-brand-dark text-base font-mono border-r border-white/50" colspan="2">${displayTotalResumen}</td>
-                `;
-                pBody.appendChild(tr);
-            }
-
-            const totals = window.getCalculatedTotals();
-            document.getElementById('p_subtotal').innerText = `S/ ${totals.venta.toFixed(2)}`;
-            document.getElementById('p_total').innerText = `S/ ${totals.venta.toFixed(2)}`;
-        };
-
-        window.clearForm = () => {
-            if(confirm('¿Estás seguro de limpiar todo el formulario?')) {
-                document.getElementById('f_clientName').value = '';
-                document.getElementById('f_clientDoc').value = '';
-                document.getElementById('f_clientPhone').value = '';
-                document.getElementById('f_clientAddress').value = '';
-                document.getElementById('f_yape').value = '917 309 964';
-                document.getElementById('f_yape_qr_url').value = '';
-                document.getElementById('f_obsNotas').value = '';
-                if(document.getElementById('f_manualTotal')) document.getElementById('f_manualTotal').value = '';
-                if(document.getElementById('f_manualCost')) document.getElementById('f_manualCost').value = '';
-                document.getElementById('f_status').value = 'Solo Proforma';
+                let colHTML = `<div class="w-full flex flex-col bg-[#161b22] border border-gray-800 rounded-xl overflow-hidden shadow-lg mb-4 text-left font-semibold">
+                    <div class="p-3 border-b border-gray-800 flex justify-between items-center ${col.bg}">
+                        <h2 class="font-bold text-[10px] md:text-[11px] tracking-widest text-slate-200 uppercase">${titleText}</h2>
+                        <span class="bg-[#0f1115] text-slate-400 text-[10px] px-2 py-0.5 rounded font-bold border border-gray-800">${colTasks.length}</span>
+                    </div>
+                    <div class="p-2 md:p-3 flex flex-col gap-2 min-h-[50px] bg-[#161b22]">`;
                 
-                window.currentEditId = null; // Salimos de modo edición
-                items = [{ id: 1, qty: 1, desc: '', cost: 0, price: 0 }];
-                window.fetchGoogleSheetsData();
-                window.renderItems();
-            }
-        };
-
-        window.generatePDF = (btn) => {
-            // DESACTIVAR ESCALA TEMPORALMENTE PARA EL PDF (Garantiza A4 Original)
-            const scaler = document.getElementById('preview-scaler');
-            scaler.style.transform = 'scale(1)'; 
-            scaler.style.height = 'auto';
-
-            const element = document.getElementById('preview-section');
-            const originalShadow = element.style.boxShadow;
-            const originalRadius = element.style.borderRadius;
-            element.style.boxShadow = 'none';
-            element.style.borderRadius = '0px';
-
-            const opt = {
-                margin: 0,
-                filename: `Proforma_${document.getElementById('f_profNumber').value || 'Nueva'}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, scrollY: 0 }, 
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Generando...';
-            lucide.createIcons();
-
-            html2pdf().set(opt).from(element).toPdf().get('pdf').then(function (pdf) {
-                const totalPages = pdf.internal.getNumberOfPages();
-                for (let i = totalPages; i > 1; i--) { pdf.deletePage(i); }
-            }).save().then(() => {
-                btn.innerHTML = originalText;
-                element.style.boxShadow = originalShadow;
-                element.style.borderRadius = originalRadius;
-                lucide.createIcons();
-
-                // DEVOLVER ESCALA INTELIGENTE A LA PANTALLA
-                window.adjustPreviewScale();
-            });
-        };
-
-        // ---------------------------------------------------------
-        // NUEVO: ENVIAR A WHATSAPP
-        // ---------------------------------------------------------
-        window.sendWhatsApp = (btn) => {
-            const phoneRaw = document.getElementById('f_clientPhone').value.trim();
-            if (!phoneRaw) {
-                alert("Por favor, ingresa el número de teléfono en los 'Datos del Cliente' para poder enviarlo por WhatsApp.");
-                return;
-            }
-            
-            // Limpiar el número (quitar espacios o guiones)
-            let phone = phoneRaw.replace(/\D/g, '');
-            
-            // Asumir código de Perú (+51) automáticamente si tiene 9 dígitos y empieza con 9
-            if (phone.length === 9 && phone.startsWith('9')) {
-                phone = '51' + phone;
-            }
-
-            const clientName = document.getElementById('f_clientName').value.trim() || 'Estimado Cliente';
-            const rawProfNum = document.getElementById('f_profNumber').value.trim();
-            const profNum = rawProfNum.startsWith('PF-') ? rawProfNum : "PF-" + rawProfNum;
-            const totals = window.getCalculatedTotals();
-            const totalStr = totals.venta.toFixed(2);
-
-            // Mensaje resumido, profesional y amigable
-            const message = `Hola *${clientName}*, te saluda el equipo de *KGB Distribuidores*. 👋\n\nAdjunto enviamos tu cotización (*Ref: ${profNum}*) por una inversión de *S/ ${totalStr}*.\n\nEl PDF contiene todo el detalle técnico y nuestra garantía. 📄✨ Quedamos atentos para cualquier consulta o ajuste. 🤝`;
-
-            const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-            
-            // Abrir WhatsApp en una nueva pestaña
-            window.open(waUrl, '_blank');
-
-            // Hacer clic automáticamente en el botón PDF para descargar la proforma
-            const pdfBtn = document.querySelector('button[onclick="window.generatePDF(this)"]');
-            if (pdfBtn) window.generatePDF(pdfBtn);
-        };
-
-        // ---------------------------------------------------------
-        // SINCRONIZACIÓN GOOGLE SHEETS
-        // ---------------------------------------------------------
-        window.setCloudStatus = (status) => {
-            const ind = document.getElementById('cloudSyncIndicator');
-            if(status === 'syncing') {
-                ind.innerHTML = `<i data-lucide="refresh-cw" class="w-3 h-3 text-blue-500 animate-spin"></i> <span class="text-[10px] text-blue-600 font-bold uppercase tracking-wider">Sincronizando...</span>`;
-            } else if(status === 'success') {
-                ind.innerHTML = `<i data-lucide="check-circle" class="w-3 h-3 text-emerald-500"></i> <span class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Sincronizado</span>`;
-                setTimeout(() => {
-                    ind.innerHTML = `<div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div> <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Nube Conectada</span>`;
-                    lucide.createIcons();
-                }, 3000);
-            } else if(status === 'error') {
-                ind.innerHTML = `<i data-lucide="cloud-off" class="w-3 h-3 text-red-500"></i> <span class="text-[10px] text-red-600 font-bold uppercase tracking-wider">Error de Red</span>`;
-            }
-            lucide.createIcons();
-        };
-
-        window.syncToGoogleSheets = async (proformaData, itemsArr) => {
-            window.setCloudStatus('syncing');
-            const rowsToSync = [];
-            itemsArr.forEach(item => {
-                let itemCostoU = item.cost || 0;
-                let itemPrecioU = item.price || 0;
-                let itemImporte = item.qty * itemPrecioU;
-                let itemGanancia = itemImporte - (item.qty * itemCostoU);
-
-                rowsToSync.push({
-                    Fecha: proformaData.date,
-                    Numero_Proforma: proformaData.profNumber,
-                    Cliente: proformaData.clientName || 'Sin Nombre',
-                    Estado: proformaData.status,
-                    Modo_Vista: proformaData.viewMode || 'detalle',
-                    Desc_General_Combo: proformaData.generalDesc || '',
-                    Item_Cant: item.qty,
-                    Item_Descripcion: item.desc || 'Sin detalle',
-                    Item_Costo_U: itemCostoU,
-                    Item_Precio_U: itemPrecioU,
-                    Item_Importe_Total: itemImporte,
-                    Item_Ganancia: itemGanancia,
-                    Proforma_Inversion_Total: proformaData.cost || 0,
-                    Proforma_Venta_Total: proformaData.total || 0,
-                    Proforma_Ganancia_Neta: proformaData.profit || 0
-                });
-            });
-
-            try {
-                await fetch(window.WEBHOOK_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', 
-                    body: JSON.stringify(rowsToSync)
-                });
-                window.setCloudStatus('success');
-            } catch (e) { 
-                console.error("Error sync Sheets:", e); 
-                window.setCloudStatus('error');
-            }
-        };
-
-        window.syncProductToGoogleSheets = async (desc, cost, price) => {
-            window.setCloudStatus('syncing');
-            const payload = { type: "producto", data: { Descripcion: desc, Costo: cost, Precio: price } };
-            try {
-                await fetch(window.WEBHOOK_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-                window.setCloudStatus('success');
-            } catch (e) { window.setCloudStatus('error'); }
-        };
-
-        // ---------------------------------------------------------
-        // FUNCIÓN GUARDAR COMPLETAMENTE A PRUEBA DE FALLOS
-        // ---------------------------------------------------------
-        window.saveProforma = async (btn) => {
-            if (btn.disabled) return;
-            const originalText = btn.innerHTML;
-            
-            try {
-                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Guardando...';
-                btn.disabled = true;
-                btn.classList.add('opacity-75', 'cursor-wait');
-                lucide.createIcons();
-
-                const totals = window.getCalculatedTotals();
-                const rawProfNum = document.getElementById('f_profNumber').value.trim();
-                const data = {
-                    profNumber: rawProfNum.startsWith('PF-') ? rawProfNum : "PF-" + rawProfNum,
-                    date: document.getElementById('f_date').value,
-                    clientName: document.getElementById('f_clientName').value || 'Sin Nombre',
-                    clientDoc: document.getElementById('f_clientDoc').value || '',
-                    clientPhone: document.getElementById('f_clientPhone').value || '',
-                    clientAddress: document.getElementById('f_clientAddress').value || '',
-                    cost: totals.cost,       
-                    total: totals.venta,     
-                    profit: totals.ganancia, 
-                    status: document.getElementById('f_status').value, 
-                    viewMode: viewMode,
-                    generalDesc: document.getElementById('f_generalDesc').value || '',
-                    manualCost: document.getElementById('f_manualCost').value || '',
-                    manualTotal: document.getElementById('f_manualTotal').value || '',
-                    yape: document.getElementById('f_yape').value || '917 309 964',
-                    yapeQrUrl: document.getElementById('f_yape_qr_url').value || '',
-                    obsGarantia: document.getElementById('f_obsGarantia').value || '',
-                    obsEntrega: document.getElementById('f_obsEntrega').value || '',
-                    obsValidez: document.getElementById('f_obsValidez').value || '',
-                    obsNotas: document.getElementById('f_obsNotas').value || '',
-                    items: items.map(i => ({ qty: i.qty, desc: i.desc || '', cost: i.cost || 0, price: i.price || 0 }))
-                };
-
-                if (window.currentEditId) {
-                    if (isConnectedToFirebase && currentUser) {
-                        await updateDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'proformas', window.currentEditId), data);
-                        data.id = window.currentEditId;
-                    } else {
-                        data.id = window.currentEditId;
-                        const idx = proformasList.findIndex(p => p.id === window.currentEditId);
-                        if (idx > -1) proformasList[idx] = data;
-                        localStorage.setItem('proformasList_kgb', JSON.stringify(proformasList));
-                        renderHistoryTable();
-                    }
-                } else {
-                    if (isConnectedToFirebase && currentUser) {
-                        const colRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'proformas');
-                        const docRef = await addDoc(colRef, data);
-                        data.id = docRef.id;
-                    } else {
-                        data.id = 'mem_' + Date.now();
-                        proformasList.unshift(data);
-                        localStorage.setItem('proformasList_kgb', JSON.stringify(proformasList));
-                        renderHistoryTable();
-                    }
+                if (colTasks.length === 0) {
+                    colHTML += `<div class="h-8 flex items-center justify-center text-[10px] text-slate-600 uppercase tracking-tighter italic w-full text-center">Vacio</div>`;
                 }
 
-                let itemsArrToSync = data.items && data.items.length > 0 ? data.items : [{qty: 1, desc: 'Sin detalle', cost: data.cost||0, price: data.total}];
-                await window.syncToGoogleSheets(data, itemsArrToSync);
+                colTasks.forEach(task => {
+                    const statusColor = task.progress === 100 ? 'bg-green-500' : (task.category === 'Compras' ? 'bg-purple-500' : 'bg-cyan-500');
+                    const isCompra = task.category === 'Compras' || task.status === 'Compras';
+                    
+                    const isExpanded = currentView === 'completed' || task.progress === 100;
+                    const descHTML = task.desc ? `<div class="text-[10px] text-slate-400 text-left mt-1.5 ${isExpanded ? 'whitespace-pre-wrap' : 'truncate'} leading-relaxed bg-[#0f1115] p-2 rounded border border-gray-800/50">${task.desc}</div>` : '';
 
-                let isCatalogUpdated = false;
-                for (const item of data.items) {
-                    if (item.desc && item.desc.trim() !== '') {
-                        const exists = productCatalog.some(p => (p.desc || '').toLowerCase() === item.desc.trim().toLowerCase());
-                        
-                        if (!exists) {
-                            if (isConnectedToFirebase && currentUser) {
-                                const invRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'inventory');
-                                await addDoc(invRef, { desc: item.desc.trim(), cost: item.cost || 0, price: item.price || 0 });
-                            } else {
-                                productCatalog.push({ id: 'mem_' + Date.now(), desc: item.desc.trim(), cost: item.cost || 0, price: item.price || 0 });
-                                isCatalogUpdated = true;
-                            }
-                            await window.syncProductToGoogleSheets(item.desc.trim(), item.cost || 0, item.price || 0);
+                    let actionButtons = '';
+                    if (isCompra) {
+                        if (task.progress === 100) {
+                            actionButtons = `
+                                <div class="flex flex-col gap-1.5 w-full">
+                                    <button onclick="updateTaskProgress('${task.id}', 0)" class="w-full bg-purple-900/30 hover:bg-purple-900/50 border border-purple-500 text-[9px] py-1.5 rounded text-purple-200 transition-colors font-bold">✓ ¡Comprado! (Deshacer)</button>
+                                    <button onclick="openObsModal('${task.id}')" class="w-full bg-blue-900/20 hover:bg-blue-900/40 border border-blue-500/50 text-[9px] py-1.5 rounded text-blue-300 transition-colors font-bold flex items-center justify-center gap-1"><i class="fas fa-edit"></i> Añadir Nota</button>
+                                </div>`;
+                        } else {
+                            actionButtons = `<button onclick="updateTaskProgress('${task.id}', 100)" class="w-full bg-transparent hover:bg-purple-900/20 border border-purple-900/50 text-[9px] py-1.5 rounded text-purple-400 transition-colors font-bold">Marcar como Comprado</button>`;
+                        }
+                    } else {
+                        if (task.progress === 100) {
+                            actionButtons = `
+                                <div class="flex flex-col gap-1.5 w-full">
+                                    <button onclick="updateTaskProgress('${task.id}', 0)" class="w-full bg-green-900/30 hover:bg-green-900/50 border border-green-500 text-[9px] py-1.5 rounded text-green-200 transition-colors font-bold">✓ Completada (Deshacer)</button>
+                                    <button onclick="openObsModal('${task.id}')" class="w-full bg-blue-900/20 hover:bg-blue-900/40 border border-blue-500/50 text-[9px] py-1.5 rounded text-blue-300 transition-colors font-bold flex items-center justify-center gap-1"><i class="fas fa-edit"></i> Añadir Observación</button>
+                                </div>`;
+                        } else {
+                            actionButtons = `<div class="flex gap-1 w-full">` + 
+                                [10, 25, 50, 75, 100].map(v => `<button onclick="updateTaskProgress('${task.id}', ${v})" class="flex-1 bg-transparent hover:bg-gray-800 border border-gray-700 text-[9px] py-1 rounded text-slate-400 transition-colors font-bold">${v === 100 ? 'Fin' : v+'%'}</button>`).join('') +
+                                `</div>`;
                         }
                     }
-                }
-                
-                if (isCatalogUpdated) {
-                    localStorage.setItem('productCatalog_kgb', JSON.stringify(productCatalog));
-                    renderCatalogTable();
-                    updateDatalist();
-                }
 
-                btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> ¡Guardado!';
-                lucide.createIcons();
-                
-            } catch (error) { 
-                alert("Error técnico al guardar. Intenta nuevamente."); 
-                console.error(error);
-                btn.innerHTML = '<i data-lucide="x" class="w-4 h-4"></i> Error';
-                lucide.createIcons();
-            } finally {
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-75', 'cursor-wait');
-                    lucide.createIcons();
-                }, 2500);
-            }
-        };
+                    colHTML += `<div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-[#1c212b] border border-gray-800 rounded-lg p-3 relative task-card group">
+                        
+                        <!-- BOTÓN ELIMINAR MEJORADO -->
+                        <button onclick="deleteTask('${task.id}')" class="absolute top-2 right-2 flex items-center justify-center w-7 h-7 text-gray-500 hover:text-red-400 bg-[#0f1115] border border-gray-700 hover:border-red-500/50 rounded transition-all z-10 shadow-sm" title="Eliminar">
+                            <i class="fas fa-trash text-xs"></i>
+                        </button>
 
-        // ---------------------------------------------------------
-        // BASE DE DATOS PROFORMAS Y DASHBOARD FINANCIERO
-        // ---------------------------------------------------------
-        window.openProfitModal = () => {
-            const t = window.getCalculatedTotals();
-            document.getElementById('m_inv').innerText = `S/ ${t.cost.toFixed(2)}`;
-            document.getElementById('m_ven').innerText = `S/ ${t.venta.toFixed(2)}`;
-            document.getElementById('m_gan').innerText = `S/ ${t.ganancia.toFixed(2)}`;
-            
-            const now = new Date();
-            const yyyy = now.getFullYear().toString();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
-            
-            const todayStr = `${yyyy}-${mm}-${dd}`;
-            const monthStr = `${yyyy}-${mm}`;
-            const yearStr = `${yyyy}`;
-
-            let hoyIngreso = 0, hoyGanancia = 0;
-            let mesIngreso = 0, mesGanancia = 0;
-            let anoIngreso = 0, anoGanancia = 0;
-
-            proformasList.forEach(p => {
-                if (p.status === 'Terminado') {
-                    const pDate = p.date; 
-                    const pProfit = p.profit || 0;
-                    const pTotal = p.total || 0;
-
-                    if (pDate === todayStr) {
-                        hoyIngreso += pTotal;
-                        hoyGanancia += pProfit;
-                    }
-                    if (pDate.startsWith(monthStr)) {
-                        mesIngreso += pTotal;
-                        mesGanancia += pProfit;
-                    }
-                    if (pDate.startsWith(yearStr)) {
-                        anoIngreso += pTotal;
-                        anoGanancia += pProfit;
-                    }
-                }
-            });
-
-            document.getElementById('m_hoy_ingreso').innerText = `S/ ${hoyIngreso.toFixed(2)}`;
-            document.getElementById('m_hoy_ganancia').innerText = `S/ ${hoyGanancia.toFixed(2)}`;
-            document.getElementById('m_mes_ingreso').innerText = `S/ ${mesIngreso.toFixed(2)}`;
-            document.getElementById('m_mes_ganancia').innerText = `S/ ${mesGanancia.toFixed(2)}`;
-            document.getElementById('m_ano_ingreso').innerText = `S/ ${anoIngreso.toFixed(2)}`;
-            document.getElementById('m_ano_ganancia').innerText = `S/ ${anoGanancia.toFixed(2)}`;
-
-            document.getElementById('profitModal').classList.remove('hidden');
-        };
-        
-        window.closeProfitModal = () => { document.getElementById('profitModal').classList.add('hidden'); };
-
-        function loadHistoryData() {
-            if (!currentUser || !isConnectedToFirebase) return;
-            const colRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'proformas');
-            onSnapshot(colRef, (snapshot) => {
-                proformasList = [];
-                snapshot.forEach(doc => { proformasList.push({ id: doc.id, ...doc.data() }); });
-                proformasList.sort((a, b) => new Date(b.date) - new Date(a.date));
-                renderHistoryTable();
+                        <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg ${task.priority === 'Alta' ? 'bg-red-500' : (isCompra ? 'bg-purple-500' : (task.progress === 100 ? 'bg-green-500' : 'bg-cyan-500'))}"></div>
+                        <div class="flex-1 pl-2 pr-8 w-full md:w-auto min-w-0 text-left">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-[9px] font-bold uppercase text-slate-300 bg-[#0f1115] px-1.5 py-0.5 rounded border border-gray-800/50">${task.category}</span>
+                                <span class="text-[9px] font-bold uppercase ${task.priority === 'Alta' ? 'text-red-400' : (isCompra ? 'text-purple-400' : (task.progress === 100 ? 'text-green-400' : 'text-cyan-400'))}">${task.priority}</span>
+                            </div>
+                            <h3 class="font-bold text-white text-base md:text-[17px] truncate text-left ${task.progress === 100 ? 'line-through text-slate-500' : ''}">${task.title}</h3>
+                            ${descHTML}
+                        </div>
+                        <div class="bg-[#0f1115] p-2 rounded-md flex flex-row md:flex-col items-center justify-center gap-3 md:gap-0.5 border border-gray-800 min-w-[120px] shrink-0 text-center text-xs hidden md:flex">
+                            <div class="text-slate-400 font-semibold">${task.date}</div>
+                            <div class="font-mono font-bold text-cyan-400">${task.time}</div>
+                        </div>
+                        <div class="w-full md:w-[320px] flex flex-col shrink-0 self-center">
+                            <div class="flex justify-between items-end mb-1">
+                                <span class="text-[9px] font-bold text-slate-200 uppercase tracking-widest">${isCompra ? 'Estado de Compra' : 'Avance'}</span>
+                                <span class="text-[10px] font-bold font-mono ${isCompra ? 'text-purple-400' : (task.progress === 100 ? 'text-green-400' : 'text-cyan-400')}">${task.progress}%</span>
+                            </div>
+                            <div class="w-full h-1 bg-[#0f1115] rounded-full overflow-hidden mb-2 shadow-inner">
+                                <div class="h-full transition-all duration-500 ${statusColor}" style="width: ${task.progress}%"></div>
+                            </div>
+                            ${actionButtons}
+                        </div>
+                    </div>`;
+                });
+                colHTML += `</div></div>`;
+                board.innerHTML += colHTML;
             });
         }
 
-        function renderHistoryTable() {
-            const tbody = document.getElementById('dbTableBody');
-            tbody.innerHTML = '';
-            let tPendiente = 0; let tIngresoTotal = 0; let tGananciaLibre = 0;
-
-            // Obtener texto del buscador de forma segura
-            const searchInput = document.getElementById('searchHistory');
-            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
-
-            // Filtrar proformas de forma súper segura (evita errores si algún dato está vacío)
-            const filteredProformas = proformasList.filter(prof => {
-                if (!prof) return false;
-                const searchStr = `${prof.clientName || ''} ${prof.profNumber || ''} ${prof.clientDoc || ''} ${prof.date || ''}`.toLowerCase();
-                return searchStr.includes(searchTerm);
-            });
-
-            filteredProformas.forEach(prof => {
-                if(prof.status === 'Solo Proforma' || prof.status === 'Aprobado') tPendiente += (prof.total || 0); 
-                if(prof.status === 'Terminado') { tIngresoTotal += (prof.total || 0); tGananciaLibre += (prof.profit || 0); }
-
-                let statusColors = prof.status === 'Solo Proforma' ? "bg-blue-50 text-blue-600 border border-blue-200" : 
-                                   prof.status === 'Aprobado' ? "bg-yellow-50 text-yellow-600 border border-yellow-200" : "bg-emerald-50 text-emerald-600 border border-emerald-200";
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="py-3 px-4 text-slate-500 font-semibold">${prof.date}</td>
-                    <td class="py-3 px-4 font-black text-brand-corp">${prof.profNumber}</td>
-                    <td class="py-3 px-4 font-semibold text-slate-800 truncate max-w-[150px]">${prof.clientName}</td>
-                    <td class="py-3 px-4 text-right font-mono font-bold text-orange-500">S/ ${(prof.cost||0).toFixed(2)}</td>
-                    <td class="py-3 px-4 text-right font-mono font-black text-slate-800">S/ ${prof.total.toFixed(2)}</td>
-                    <td class="py-3 px-4 text-right font-mono font-black text-emerald-500">S/ ${(prof.profit||0).toFixed(2)}</td>
-                    <td class="py-3 px-4 text-center">
-                        <select onchange="window.updateStatus('${prof.id}', this.value)" class="text-[10px] font-bold px-2.5 py-1.5 rounded-md outline-none cursor-pointer shadow-sm ${statusColors} transition-colors">
-                            <option value="Solo Proforma" ${prof.status === 'Solo Proforma' ? 'selected' : ''}>📝 Proforma</option>
-                            <option value="Aprobado" ${prof.status === 'Aprobado' ? 'selected' : ''}>👍 Aprobado</option>
-                            <option value="Terminado" ${prof.status === 'Terminado' ? 'selected' : ''}>✅ Terminado</option>
-                        </select>
-                    </td>
-                    <td class="py-3 px-4 text-center whitespace-nowrap">
-                        <button onclick="window.loadProforma('${prof.id}')" title="Editar/Cargar Proforma" class="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-1.5 rounded transition-colors mr-1"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                        <button onclick="window.deleteProforma('${prof.id}')" title="Eliminar" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            document.getElementById('h_totalCount').innerText = filteredProformas.length; // Muestra la cantidad filtrada o total
-            document.getElementById('h_totalPendiente').innerText = `S/ ${tPendiente.toFixed(2)}`;
-            document.getElementById('h_totalIngreso').innerText = `S/ ${tIngresoTotal.toFixed(2)}`;
-            document.getElementById('h_totalGanancia').innerText = `S/ ${tGananciaLibre.toFixed(2)}`;
-            lucide.createIcons();
-        }
-
-        // CARGAR PROFORMA AL FORMULARIO PRINCIPAL (REAJUSTE)
-        window.loadProforma = (id) => {
-            const prof = proformasList.find(p => p.id === id);
-            if (!prof) return;
-
-            window.currentEditId = id; // Entramos en modo edición
-
-            let rawNum = prof.profNumber;
-            if(rawNum.startsWith('PF-')) rawNum = rawNum.substring(3);
-            
-            document.getElementById('f_profNumber').value = rawNum;
-            document.getElementById('f_date').value = prof.date || '';
-            document.getElementById('f_status').value = prof.status || 'Solo Proforma';
-            document.getElementById('f_clientName').value = prof.clientName === 'Sin Nombre' ? '' : prof.clientName;
-            document.getElementById('f_clientDoc').value = prof.clientDoc || '';
-            document.getElementById('f_clientPhone').value = prof.clientPhone || '';
-            document.getElementById('f_clientAddress').value = prof.clientAddress || '';
-            
-            document.getElementById('f_generalDesc').value = prof.generalDesc || '';
-            document.getElementById('f_manualCost').value = prof.manualCost || '';
-            document.getElementById('f_manualTotal').value = prof.manualTotal || '';
-            
-            document.getElementById('f_yape').value = prof.yape || '917 309 964';
-            document.getElementById('f_yape_qr_url').value = prof.yapeQrUrl || '';
-            document.getElementById('f_obsGarantia').value = prof.obsGarantia || '12 meses contra defectos de fábrica';
-            document.getElementById('f_obsEntrega').value = prof.obsEntrega || '24 a 48 horas tras confirmación';
-            document.getElementById('f_obsValidez').value = prof.obsValidez || '3 días útiles';
-            document.getElementById('f_obsNotas').value = prof.obsNotas || '';
-
-            if (prof.items && prof.items.length > 0) {
-                items = prof.items.map((i, index) => ({ id: index + 1, qty: i.qty, desc: i.desc, cost: i.cost, price: i.price }));
-            } else {
-                items = [{ id: 1, qty: 1, desc: '', cost: 0, price: 0 }];
-            }
-
-            window.setMode(prof.viewMode || 'detalle');
-            window.renderItems();
-            window.updatePreview();
-            window.closeHistory();
-            
-            // Destello amarillo para avisar que se cargó con éxito
-            const numInput = document.getElementById('f_profNumber');
-            numInput.classList.add('bg-yellow-100', 'text-yellow-800');
-            setTimeout(() => numInput.classList.remove('bg-yellow-100', 'text-yellow-800'), 1500);
-        };
-
-        window.updateStatus = async (id, newStatus) => {
-            try {
-                if (isConnectedToFirebase && currentUser) {
-                    await updateDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'proformas', id), { status: newStatus });
+        function updateTaskProgress(id, val) {
+            const task = tasks.find(t => t.id === id);
+            if(task) {
+                if(task.category === 'Compras' || task.status === 'Compras') {
+                    task.progress = val;
+                    task.status = 'Compras'; 
                 } else {
-                    const idx = proformasList.findIndex(p => p.id === id);
-                    if(idx > -1) {
-                        proformasList[idx].status = newStatus;
-                        localStorage.setItem('proformasList_kgb', JSON.stringify(proformasList));
-                        renderHistoryTable();
-                    }
+                    task.progress = val;
+                    if(val === 100) task.status = 'Completadas';
+                    else if(task.priority === 'Alta') task.status = 'Prioridad Alta'; 
+                    else if(val > 0) task.status = 'En Proceso';
+                    else task.status = 'Pendientes';
                 }
                 
-                const profToSync = proformasList.find(p => p.id === id);
-                if (profToSync) {
-                    profToSync.status = newStatus;
-                    let itemsArr = profToSync.items && profToSync.items.length > 0 ? profToSync.items : [{qty: 1, desc: 'Sin detalle', cost: profToSync.cost||0, price: profToSync.total}];
-                    await window.syncToGoogleSheets(profToSync, itemsArr);
-                }
-            } catch (error) { console.error("Error actualizando estado:", error); }
-        };
+                saveTasks();
+                renderBoard();
+                sendToGoogleSheets(task);
+            }
+        }
 
-        window.deleteProforma = async (id) => {
-            if (confirm("¿Eliminar proforma del historial?")) {
-                if (isConnectedToFirebase && currentUser) {
-                    await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'proformas', id));
-                } else {
-                    proformasList = proformasList.filter(p => p.id !== id);
-                    localStorage.setItem('proformasList_kgb', JSON.stringify(proformasList));
-                    renderHistoryTable();
+        function deleteTask(id) {
+            if(confirm("¿Estás seguro de eliminar este registro?")) {
+                tasks = tasks.filter(t => t.id !== id);
+                saveTasks();
+                renderBoard();
+                sendToGoogleSheets({ id: id, action: 'delete' });
+            }
+        }
+
+        // ==========================================
+        // MODAL DE OBSERVACIONES
+        // ==========================================
+        window.openObsModal = function(id) {
+            const task = tasks.find(t => t.id === id);
+            if(!task) return;
+            document.getElementById('obs-task-id').value = id;
+            document.getElementById('obs-task-title').innerText = "Observación para: " + task.title;
+            document.getElementById('obs-text').value = ""; 
+            document.getElementById('obs-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('obs-text').focus(), 100);
+        }
+
+        window.closeObsModal = function() {
+            document.getElementById('obs-modal').classList.add('hidden');
+            document.getElementById('obs-form').reset();
+        }
+
+        document.getElementById('obs-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = document.getElementById('obs-task-id').value;
+            const obsText = document.getElementById('obs-text').value.trim();
+            
+            if(obsText) {
+                const task = tasks.find(t => t.id === id);
+                if(task) {
+                    const prefix = task.desc ? task.desc + "\n\n" : "";
+                    task.desc = prefix + "📌 OBSERVACIÓN: " + obsText;
+                    saveTasks();
+                    renderBoard();
+                    sendToGoogleSheets(task); 
                 }
             }
-        };
+            closeObsModal();
+        });
 
-        window.openHistory = () => document.getElementById('historyModal').classList.remove('hidden');
-        window.closeHistory = () => document.getElementById('historyModal').classList.add('hidden');
-
-        // ---------------------------------------------------------
-        // GESTIÓN DE CONTRATOS EDITABLES
-        // ---------------------------------------------------------
-        window.openContractModal = () => {
-            renderContractTable();
-            document.getElementById('contractModal').classList.remove('hidden');
-        };
-        
-        window.closeContractModal = () => document.getElementById('contractModal').classList.add('hidden');
-
-        window.updateContractAmount = (id, total) => {
-            let pct = parseFloat(document.getElementById(`c_pct_${id}`).value) || 0;
-            if(pct > 100) pct = 100;
-            if(pct < 0) pct = 0;
-            const amount = (total * (pct / 100)).toFixed(2);
-            document.getElementById(`c_amt_${id}`).innerText = `S/ ${amount}`;
-        };
-
-        function renderContractTable() {
-            const tbody = document.getElementById('contractTableBody');
-            tbody.innerHTML = '';
+        // ==========================================
+        // FORMULARIO MANUAL MEJORADO
+        // ==========================================
+        function setTaskType(type) {
+            document.getElementById('task-type').value = type;
             
-            const eligibleProformas = proformasList.filter(p => p.status === 'Aprobado' || p.status === 'Terminado');
+            const btnNormal = document.getElementById('btn-type-normal');
+            const btnUrgente = document.getElementById('btn-type-urgente');
+            const btnCompra = document.getElementById('btn-type-compra');
+            const catContainer = document.getElementById('category-container');
+            const titleLabel = document.getElementById('label-title');
+            
+            [btnNormal, btnUrgente, btnCompra].forEach(btn => {
+                btn.className = "flex-1 py-2.5 rounded border border-gray-700 bg-[#0f1115] hover:bg-gray-800 text-gray-400 text-xs font-bold transition-all";
+            });
+            
+            if (type === 'normal') {
+                btnNormal.className = "flex-1 py-2.5 rounded border border-cyan-500 bg-cyan-500/20 text-cyan-300 text-xs font-bold transition-all shadow-inner";
+                catContainer.style.display = 'block';
+                titleLabel.innerText = "Título de la Tarea";
+            } else if (type === 'urgente') {
+                btnUrgente.className = "flex-1 py-2.5 rounded border border-red-500 bg-red-500/20 text-red-300 text-xs font-bold transition-all shadow-inner";
+                catContainer.style.display = 'block';
+                titleLabel.innerText = "Tarea Urgente";
+            } else if (type === 'compra') {
+                btnCompra.className = "flex-1 py-2.5 rounded border border-purple-500 bg-purple-500/20 text-purple-300 text-xs font-bold transition-all shadow-inner";
+                catContainer.style.display = 'none'; 
+                titleLabel.innerText = "Artículo a Comprar";
+            }
+            
+            document.getElementById('task-title').focus();
+        }
 
-            if(eligibleProformas.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-400 font-medium">No hay proformas aprobadas para generar contratos.</td></tr>`;
+        // ==========================================
+        // MICRÓFONO INMORTAL Y ACUMULATIVO
+        // ==========================================
+        let recognition = null;
+        let isRecording = false;
+        let finalHistory = ""; 
+
+        function toggleSmartDictation() {
+            const inputEl = document.getElementById('ai-input');
+            const iconEl = document.getElementById('mic-icon');
+            const statusEl = document.getElementById('ai-status');
+
+            if (isRecording) {
+                isRecording = false;
+                if (recognition) recognition.stop();
+                iconEl.className = "fas fa-microphone text-lg";
+                iconEl.classList.remove('mic-active');
+                if(inputEl.value.trim().length > 3) processWithGemini(inputEl.value);
                 return;
             }
 
-            eligibleProformas.forEach(prof => {
-                const mitad = (prof.total / 2);
-                
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="py-3 px-4 text-slate-500 font-semibold">${prof.date}</td>
-                    <td class="py-3 px-4 font-black text-brand-corp">${prof.profNumber}</td>
-                    <td class="py-3 px-4 font-semibold text-slate-800">${prof.clientName}</td>
-                    <td class="py-3 px-4 text-right font-mono font-black text-slate-800">S/ ${prof.total.toFixed(2)}</td>
-                    <td class="py-3 px-4 text-center">
-                        <div class="flex items-center justify-center gap-1">
-                            <input type="number" id="c_pct_${prof.id}" value="50" min="0" max="100" class="w-16 bg-white border border-rose-200 rounded-md px-1 py-1.5 text-center text-rose-700 font-black focus:border-rose-500 focus:ring-1 outline-none transition-colors" oninput="window.updateContractAmount('${prof.id}', ${prof.total})">
-                            <span class="text-rose-500 font-bold text-xs">%</span>
-                        </div>
-                    </td>
-                    <td class="py-3 px-4 text-right font-mono font-black text-rose-600 bg-rose-50/50" id="c_amt_${prof.id}">S/ ${mitad.toFixed(2)}</td>
-                    <td class="py-3 px-4 text-center">
-                        <button onclick="window.generateContractPDF('${prof.id}', this)" class="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-200 font-bold transition-all shadow-sm hover:shadow flex items-center gap-1.5 mx-auto">
-                            <i data-lucide="printer" class="w-3.5 h-3.5"></i> Imprimir
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-            lucide.createIcons();
-        }
-
-        window.generateContractPDF = (id, btn) => {
-            const prof = proformasList.find(p => p.id === id);
-            if (!prof) return alert("Error: Proforma no encontrada.");
-
-            let pct = parseFloat(document.getElementById(`c_pct_${id}`).value);
-            if (isNaN(pct) || pct < 0) pct = 0;
-            if (pct > 100) pct = 100;
-
-            const total = prof.total;
-            const adelanto = total * (pct / 100);
-            const saldo = total - adelanto;
-
-            document.getElementById('c_profNumber').innerText = prof.profNumber;
-            document.getElementById('c_profNumber_2').innerText = prof.profNumber;
-            document.getElementById('c_clientName').innerText = prof.clientName;
-            document.getElementById('c_clientDoc').innerText = prof.clientDoc || '___________';
-            document.getElementById('c_clientName_sign').innerText = prof.clientName;
-            document.getElementById('c_clientDoc_sign').innerText = prof.clientDoc || '___________';
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) { alert("Tu navegador no soporta la API de voz. Te sugerimos usar Chrome o Edge."); return; }
             
-            // Formatear fecha a DD/MM/YYYY
-            const dateParts = prof.date.split('-');
-            const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : prof.date;
-            document.getElementById('c_date').innerText = formattedDate;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'es-ES';
+            recognition.continuous = true;
+            recognition.interimResults = true;
             
-            document.getElementById('c_total').innerText = total.toFixed(2);
+            finalHistory = inputEl.value;
 
-            const termsContainer = document.getElementById('c_payment_terms');
-            if (pct === 100) {
-                termsContainer.innerHTML = `<p>EL CLIENTE abonará dicho monto bajo la siguiente modalidad:<br>
-                1. <strong>Pago Total (100%):</strong> A la firma del presente documento, EL CLIENTE abona la suma de <strong>S/ ${adelanto.toFixed(2)}</strong> (Soles), cancelando el total de los equipos y/o servicios acordados.</p>`;
-            } else if (pct === 0) {
-                 termsContainer.innerHTML = `<p>EL CLIENTE abonará dicho monto bajo la siguiente modalidad:<br>
-                1. <strong>Pago al Finalizar (100%):</strong> El monto total de <strong>S/ ${saldo.toFixed(2)}</strong> (Soles) será cancelado íntegramente contra entrega y conformidad de los equipos y/o servicios brindados.</p>`;
-            } else {
-                const remainderPct = (100 - pct).toFixed(2).replace(/\.00$/, ''); 
-                const formattedPct = pct.toFixed(2).replace(/\.00$/, '');
-                termsContainer.innerHTML = `<p>EL CLIENTE abonará dicho monto bajo la siguiente modalidad:<br>
-                1. <strong>Pago de Adelanto (${formattedPct}%):</strong> A la firma del presente documento, EL CLIENTE abona la suma de <strong>S/ ${adelanto.toFixed(2)}</strong> (Soles), en calidad de anticipo para el inicio del servicio y adquisición de componentes.<br>
-                2. <strong>Pago de Saldo (${remainderPct}%):</strong> El saldo restante de <strong>S/ ${saldo.toFixed(2)}</strong> (Soles) será cancelado contra entrega y conformidad de los equipos y/o servicios brindados.</p>`;
-            }
-
-            const element = document.getElementById('contract-template');
-            
-            // QUITAR ESCALA DE CONTRATO POR SI ACASO
-            element.style.transform = 'scale(1)';
-
-            const opt = {
-                margin: 0,
-                filename: `Contrato_${prof.profNumber}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, scrollY: 0 }, 
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            recognition.onstart = () => {
+                isRecording = true;
+                iconEl.className = "fas fa-stop text-lg";
+                iconEl.classList.add('mic-active');
+                statusEl.classList.remove('hidden');
+                document.getElementById('status-text').innerText = "Escuchando... El texto se acumulará.";
+                document.getElementById('api-error-info').classList.add('hidden');
+                window.lastConfirmedPhrase = ""; 
             };
 
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Generando...';
-            btn.classList.add('opacity-70', 'cursor-not-allowed');
-            lucide.createIcons();
+            recognition.onresult = (event) => {
+                let interimTranscript = "";
+                let confirmedThisSession = "";
 
-            html2pdf().set(opt).from(element).toPdf().get('pdf').then(function (pdf) {
-                const totalPages = pdf.internal.getNumberOfPages();
-                for (let i = totalPages; i > 1; i--) { pdf.deletePage(i); } // Asegurar solo 1 página
-            }).save().then(() => {
-                btn.innerHTML = originalText;
-                btn.classList.remove('opacity-70', 'cursor-not-allowed');
-                lucide.createIcons();
-            });
-        };
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        confirmedThisSession += transcript + " ";
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                if (confirmedThisSession) {
+                    if (window.lastConfirmedPhrase !== confirmedThisSession) {
+                        finalHistory = (finalHistory.trim() ? finalHistory.trim() + " " : "") + confirmedThisSession;
+                        window.lastConfirmedPhrase = confirmedThisSession;
+                    }
+                }
 
-        // ---------------------------------------------------------
-        // CATÁLOGO DE PRODUCTOS 
-        // ---------------------------------------------------------
-        function renderCatalogTable() {
-            const tbody = document.getElementById('catalogTableBody');
-            tbody.innerHTML = '';
-            productCatalog.forEach(p => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="py-2.5 px-4 font-semibold text-slate-800">${p.desc}</td>
-                    <td class="py-2.5 px-4 text-right text-orange-600 font-mono font-bold">S/ ${(p.cost||0).toFixed(2)}</td>
-                    <td class="py-2.5 px-4 text-right text-emerald-600 font-mono font-bold">S/ ${(p.price||0).toFixed(2)}</td>
-                    <td class="py-2.5 px-4 text-center">
-                        <button onclick="window.deleteCatalogItem('${p.id}')" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-            lucide.createIcons();
+                inputEl.value = (finalHistory + interimTranscript).trim();
+                inputEl.scrollTop = inputEl.scrollHeight;
+            };
+
+            recognition.onend = () => {
+                if (isRecording) {
+                    try { recognition.start(); } catch(e){} 
+                }
+            };
+            recognition.start();
         }
 
-        function updateDatalist() {
-            const dl = document.getElementById('inventoryList');
-            dl.innerHTML = '';
-            productCatalog.forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p.desc;
-                dl.appendChild(opt);
-            });
-        }
+        // ==========================================
+        // MOTOR DE IA: GOOGLE GEMINI
+        // ==========================================
+        async function processWithGemini(text) {
+            const statusEl = document.getElementById('ai-status');
+            const statusText = document.getElementById('status-text');
+            const spinner = document.getElementById('ai-spinner');
+            const errorInfo = document.getElementById('api-error-info');
 
-        window.addCatalogItem = async () => {
-            const desc = document.getElementById('cat_desc').value.trim();
-            const cost = parseFloat(document.getElementById('cat_cost').value) || 0;
-            const price = parseFloat(document.getElementById('cat_price').value) || 0;
+            statusEl.classList.remove('hidden');
+            errorInfo.classList.add('hidden');
+            statusText.innerText = "IA procesando campos...";
+            spinner.className = "fas fa-bolt animate-pulse text-yellow-400";
+
+            if (!aiKey) {
+                document.getElementById('task-title').value = text;
+                setTaskType('normal');
+                statusText.innerText = "Texto pegado sin IA";
+                spinner.className = "fas fa-exclamation-triangle text-yellow-400";
+                errorInfo.innerHTML = `<b>Aviso:</b> Falta la API Key de Gemini. Ve a configuración (⚙️) para añadirla. <br/><i>Tu texto se salvó en el título.</i>`;
+                errorInfo.classList.remove('hidden');
+                return;
+            }
             
-            if(!desc) return alert("Escribe la descripción del producto.");
-
-            document.getElementById('cat_desc').value = '';
-            document.getElementById('cat_cost').value = '';
-            document.getElementById('cat_price').value = '';
+            const prompt = `Actúa como un asistente de extracción de datos.
+Texto: "${text}". 
+Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen muy corto", "desc": "detalles completos", "category": "Compras" o "General", "priority": "Alta" o "Baja"}`;
 
             try {
-                if (isConnectedToFirebase && currentUser) {
-                    const colRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'inventory');
-                    await addDoc(colRef, { desc, cost, price });
-                } else {
-                    productCatalog.push({ id: 'mem_' + Date.now(), desc, cost, price });
-                    localStorage.setItem('productCatalog_kgb', JSON.stringify(productCatalog));
-                    renderCatalogTable();
-                    updateDatalist();
-                }
-                await window.syncProductToGoogleSheets(desc, cost, price);
-            } catch (error) { console.error("Error guardando producto:", error); }
-        };
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${aiKey}`;
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }]
+                    })
+                });
 
-        window.deleteCatalogItem = async (id) => {
-            if(confirm("¿Eliminar este producto del catálogo?")) {
-                if (isConnectedToFirebase && currentUser) {
-                    await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'inventory', id));
-                } else {
-                    productCatalog = productCatalog.filter(c => c.id !== id);
-                    localStorage.setItem('productCatalog_kgb', JSON.stringify(productCatalog));
-                    renderCatalogTable();
-                    updateDatalist();
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error?.message || `Error del servidor: ${response.status}`);
                 }
+
+                const result = await response.json();
+                let rawContent = result.candidates[0].content.parts[0].text;
+                
+                rawContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
+                const data = JSON.parse(rawContent);
+
+                document.getElementById('task-title').value = data.title || "";
+                document.getElementById('task-desc').value = data.desc || "";
+                
+                if (data.category && data.category.toLowerCase().includes("compra")) {
+                    setTaskType('compra');
+                } else if (data.priority === "Alta") {
+                    setTaskType('urgente');
+                } else {
+                    setTaskType('normal');
+                    document.getElementById('task-cat').value = data.category || "General";
+                }
+
+                statusText.innerText = "¡Campos rellenados con éxito!";
+                spinner.className = "fas fa-check-circle text-green-400";
+                setTimeout(() => statusEl.classList.add('hidden'), 3000);
+
+            } catch (e) {
+                console.error("Error Gemini:", e);
+                
+                document.getElementById('task-title').value = text;
+                setTaskType('normal');
+                
+                statusText.innerText = "Texto pegado sin IA";
+                spinner.className = "fas fa-exclamation-triangle text-yellow-400";
+                
+                let userFriendlyError = e.message;
+                if (userFriendlyError.includes("API_KEY_INVALID")) {
+                    userFriendlyError = "Tu API Key es inválida o está vencida.";
+                }
+                
+                errorInfo.innerHTML = `<b>Aviso IA:</b> ${userFriendlyError}. <br/><i>El texto se pegó en el título para que no lo pierdas.</i>`;
+                errorInfo.classList.remove('hidden');
             }
-        };
+        }
 
-        window.openCatalogModal = () => document.getElementById('catalogModal').classList.remove('hidden');
-        window.closeCatalogModal = () => document.getElementById('catalogModal').classList.add('hidden');
+        function openModal() {
+            document.getElementById('task-modal').classList.remove('hidden');
+            
+            if (currentView === 'shopping') {
+                setTaskType('compra');
+            } else {
+                setTaskType('normal'); 
+            }
+            
+            setTimeout(() => document.getElementById('task-title').focus(), 100);
+        }
 
-        window.onload = window.initDefaults;
+        function closeModal() {
+            document.getElementById('task-modal').classList.add('hidden');
+            document.getElementById('new-task-form').reset();
+            
+            document.getElementById('ai-input').value = "";
+            finalHistory = ""; 
+            if (recognition) recognition.stop();
+            isRecording = false;
+            const iconEl = document.getElementById('mic-icon');
+            if (iconEl) {
+                iconEl.className = "fas fa-microphone text-lg";
+                iconEl.classList.remove('mic-active');
+            }
+        }
+
+        document.getElementById('new-task-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const type = document.getElementById('task-type').value;
+            let prio = 'Baja';
+            let status = 'Pendientes';
+            let cat = document.getElementById('task-cat').value;
+            
+            if (type === 'urgente') {
+                prio = 'Alta';
+                status = 'Prioridad Alta';
+            } else if (type === 'compra') {
+                prio = 'Baja'; 
+                status = 'Compras';
+                cat = 'Compras';
+            }
+
+            const now = new Date();
+
+            const newTask = {
+                id: 't' + Date.now(),
+                title: document.getElementById('task-title').value,
+                desc: document.getElementById('task-desc').value,
+                category: cat,
+                priority: prio,
+                status: status,
+                progress: 0,
+                date: now.toISOString().split('T')[0],
+                time: now.toTimeString().slice(0,5)
+            };
+            
+            tasks.push(newTask);
+            saveTasks();
+            
+            if (type === 'compra' && currentView !== 'shopping') {
+                switchView('shopping');
+            } else {
+                renderBoard();
+            }
+            
+            closeModal();
+            sendToGoogleSheets(newTask);
+        });
+
+        // INICIO DE LA APLICACIÓN
+        switchView('dashboard'); 
+        fetchTasksFromSheets();
 
     </script>
 </body>
