@@ -300,11 +300,52 @@
         let audioCtx = null;
         let beepInterval = null;
 
-        document.addEventListener('click', () => {
+        function initAudioContext() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-        }, { once: true });
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            // Una vez inicializado, quitamos los "escuchadores" para no sobrecargar la app
+            document.removeEventListener('click', initAudioContext);
+            document.removeEventListener('touchstart', initAudioContext);
+            document.removeEventListener('keydown', initAudioContext);
+        }
+
+        // Armamos el audio con cualquier interacción del usuario (Vital para celulares y PC)
+        document.addEventListener('click', initAudioContext);
+        document.addEventListener('touchstart', initAudioContext);
+        document.addEventListener('keydown', initAudioContext);
+
+        function playAlarmSound() {
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            // Función para tocar un tono corto
+            const playTone = (freq, startTime, duration) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'square'; // Sonido digital clásico
+                osc.frequency.value = freq;
+                
+                // Efecto de entrada y salida suave para que no "chasquee" el altavoz
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(0.1, startTime + 0.01);
+                gain.gain.setValueAtTime(0.1, startTime + duration - 0.02);
+                gain.gain.linearRampToValueAtTime(0, startTime + duration);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + duration);
+            };
+
+            const now = audioCtx.currentTime;
+            // Clásico doble bip de despertador: (pi-pip)
+            playTone(900, now, 0.12);
+            playTone(900, now + 0.25, 0.12);
+        }
 
         function triggerAlarm(title) {
             const banner = document.getElementById('alarm-banner');
@@ -312,22 +353,14 @@
                 document.getElementById('alarm-task-title').innerText = title;
                 banner.classList.remove('hidden');
                 
+                // Sonar el primer aviso inmediatamente
+                playAlarmSound();
+                
                 if (!beepInterval) {
+                    // Repetir el sonido cada 2 segundos mientras el banner esté visible
                     beepInterval = setInterval(() => {
-                        if (audioCtx) {
-                            if(audioCtx.state === 'suspended') audioCtx.resume();
-                            const osc = audioCtx.createOscillator();
-                            const gain = audioCtx.createGain();
-                            osc.type = 'square';
-                            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-                            osc.frequency.setValueAtTime(1200, audioCtx.currentTime + 0.2);
-                            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                            osc.connect(gain);
-                            gain.connect(audioCtx.destination);
-                            osc.start();
-                            osc.stop(audioCtx.currentTime + 0.4);
-                        }
-                    }, 1500);
+                        playAlarmSound();
+                    }, 2000);
                 }
             }
         }
