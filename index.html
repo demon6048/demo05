@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Centro de Control Diario</title>
-    <!-- VERSIÓN ACTUALIZADA CON OBSERVACIONES BLINDADAS -->
+    <!-- VERSIÓN DEFINITIVA: AUTO-SYNC, BLINDAJE ANTI-ZOMBIES E INDICADOR DE GUARDADO -->
     
-    <!-- FAVICON: Punto verde con check integrado -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2310b981'/><path d='M30 50 L45 65 L70 35' stroke='white' stroke-width='10' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -21,10 +20,29 @@
         .task-card:hover { border-color: #4b5563; background-color: #242933; }
         .mic-active { color: #22d3ee !important; animation: pulse-cyan 1.5s infinite; }
         @keyframes pulse-cyan { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.15); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes flash-red { 0% { background-color: #b91c1c; } 50% { background-color: #7f1d1d; } 100% { background-color: #b91c1c; } }
+        .alarm-flashing { animation: flash-red 1s infinite; }
         #loading-overlay { backdrop-filter: blur(4px); }
+        .sync-saving { color: #4ade80 !important; } /* Verde para indicar guardado */
     </style>
 </head>
 <body class="bg-[#0f1115] text-slate-200 font-sans h-screen flex flex-col overflow-hidden selection:bg-blue-500/30 text-left">
+
+    <!-- BANNER DE ALARMA SONORA -->
+    <div id="alarm-banner" class="fixed top-0 left-0 w-full alarm-flashing border-b-4 border-red-900 z-[100] hidden flex flex-col md:flex-row items-center justify-between p-4 md:px-8 shadow-2xl transition-transform transform translate-y-0">
+        <div class="flex items-center gap-4 w-full md:w-auto">
+            <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center shrink-0">
+                <i class="fas fa-bell text-2xl text-white animate-bounce"></i>
+            </div>
+            <div class="text-white flex-1">
+                <h3 class="font-black text-sm md:text-lg uppercase tracking-widest">⚠️ Prioridad Alta</h3>
+                <p class="text-xs md:text-sm font-semibold opacity-90" id="alarm-task-title">Queda 1 hora o menos para una tarea.</p>
+            </div>
+        </div>
+        <button onclick="stopAlarm()" class="mt-3 md:mt-0 w-full md:w-auto px-8 py-3 bg-black/40 hover:bg-black/60 text-white font-bold rounded-lg border border-white/30 transition-colors shadow-lg active:scale-95 whitespace-nowrap">
+            <i class="fas fa-volume-mute mr-2"></i> Silenciar Alarma
+        </button>
+    </div>
 
     <!-- OVERLAY DE CARGA -->
     <div id="loading-overlay" class="fixed inset-0 bg-[#0f1115]/80 z-50 flex flex-col justify-center items-center">
@@ -63,22 +81,16 @@
         <div class="flex items-center gap-2 md:gap-3 w-full md:w-auto justify-between md:justify-end">
             <div class="text-xl md:text-2xl font-mono font-bold tracking-widest text-white bg-[#0f1115] px-4 py-1.5 rounded-lg border border-gray-800 hidden lg:block" id="current-time">00:00:00</div>
             
-            <!-- BOTÓN CONFIGURACIÓN -->
+            <!-- BOTONES -->
             <button onclick="openConfigModal()" class="flex justify-center items-center w-10 h-10 md:w-auto md:px-3 md:py-2.5 bg-[#1e293b] hover:bg-[#334155] border border-gray-600 text-gray-400 rounded-md transition-all shadow-md active:scale-95" title="Configuración de APIs">
                 <i class="fas fa-cog"></i>
             </button>
-
-            <!-- BOTÓN SINCRONIZAR MANUAL -->
-            <button onclick="manualSync()" class="flex justify-center items-center w-10 h-10 md:w-auto md:px-3 md:py-2.5 bg-[#1e293b] hover:bg-[#334155] border border-blue-500/30 text-blue-400 rounded-md transition-all shadow-md active:scale-95" title="Sincronizar ahora">
-                <i class="fas fa-sync-alt" id="sync-icon"></i><span class="hidden md:inline ml-2 text-sm font-bold">Sync</span>
+            <button onclick="manualSync(false)" class="flex justify-center items-center w-10 h-10 md:w-auto md:px-3 md:py-2.5 bg-[#1e293b] hover:bg-[#334155] border border-blue-500/30 text-blue-400 rounded-md transition-all shadow-md active:scale-95" title="Forzar Sincronización">
+                <i class="fas fa-sync-alt" id="sync-icon"></i><span class="hidden md:inline ml-2 text-sm font-bold">Auto-Sync</span>
             </button>
-
-            <!-- BOTÓN PANTALLA COMPLETA -->
             <button onclick="toggleFullScreen()" id="btn-fullscreen" class="flex justify-center items-center w-10 h-10 md:w-auto md:px-3 md:py-2.5 bg-gray-800 hover:bg-gray-700 text-slate-300 rounded-md transition-all shadow-md active:scale-95" title="Pantalla Completa">
                 <i class="fas fa-expand"></i>
             </button>
-
-            <!-- BOTÓN NUEVA TAREA -->
             <button onclick="openModal()" class="flex-1 md:flex-none flex justify-center items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 md:py-2.5 rounded-md font-bold transition-all text-sm shadow-md active:scale-95 whitespace-nowrap">
                 <i class="fas fa-plus"></i><span class="hidden sm:inline">Nuevo</span>
             </button>
@@ -86,7 +98,7 @@
     </header>
 
     <!-- NAVEGACIÓN DE PESTAÑAS -->
-    <div class="bg-[#161b22] border-b border-gray-800 flex px-2 md:px-6 overflow-x-auto custom-scrollbar">
+    <div class="bg-[#161b22] border-b border-gray-800 flex px-2 md:px-6 overflow-x-auto custom-scrollbar shrink-0">
         <button onclick="switchView('dashboard')" id="tab-dashboard" class="px-5 py-3 text-sm font-bold border-b-2 border-cyan-500 text-cyan-400 transition-colors flex items-center gap-2 whitespace-nowrap bg-[#0f1115]">
             <i class="fas fa-tasks"></i> Tablero Principal
         </button>
@@ -98,8 +110,15 @@
         </button>
     </div>
 
-    <main class="flex-1 overflow-x-hidden overflow-y-auto p-3 md:p-6 custom-scrollbar bg-[#0f1115]">
-        <div class="flex flex-col gap-4 md:gap-5 w-full max-w-[1300px] mx-auto pb-10" id="kanban-board"></div>
+    <main class="flex-1 overflow-x-hidden overflow-y-auto p-3 md:p-6 flex flex-col custom-scrollbar bg-[#0f1115]">
+        <div class="flex flex-col gap-4 md:gap-5 w-full max-w-[1300px] mx-auto flex-1 pb-4" id="kanban-board"></div>
+        
+        <!-- FIRMA DEL AUTOR -->
+        <div class="w-full text-center pt-6 pb-2 shrink-0">
+            <span class="text-white/40 hover:text-white/90 transition-colors duration-300 text-[10px] md:text-xs font-mono tracking-widest uppercase select-none">
+                j. Vizcarra.
+            </span>
+        </div>
     </main>
 
     <!-- MODAL CONFIGURACIÓN -->
@@ -111,9 +130,9 @@
             </div>
             <div class="space-y-4">
                 <div>
-                    <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider text-[10px]">Google Gemini API Key (Para Inteligencia Artificial)</label>
+                    <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider text-[10px]">Google Gemini API Key</label>
                     <input type="password" id="config-api-key" placeholder="AIzaSy..." class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none text-sm">
-                    <p class="text-[9px] text-slate-500 mt-1">Genera tu clave gratuita y segura en <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-cyan-400 underline">aistudio.google.com/app/apikey</a></p>
+                    <p class="text-[9px] text-slate-500 mt-1">Genera tu clave en <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-cyan-400 underline">aistudio.google.com</a></p>
                 </div>
                 <div>
                     <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider text-[10px]">URL de Google Sheets</label>
@@ -148,11 +167,11 @@
         </div>
     </div>
 
-    <!-- MODAL NUEVA TAREA / COMPRA (ENTRADA RÁPIDA) -->
+    <!-- MODAL NUEVA TAREA / EDITAR -->
     <div id="task-modal" class="fixed inset-0 bg-black/80 hidden z-50 flex justify-center items-center backdrop-blur-sm overflow-y-auto p-4 text-left">
         <div class="bg-[#161b22] border border-gray-700 rounded-xl w-full max-w-lg p-5 md:p-6 shadow-2xl transform transition-all my-auto">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg md:text-xl font-bold text-white uppercase tracking-widest text-xs">Añadir Registro</h2>
+                <h2 id="modal-title-text" class="text-lg md:text-xl font-bold text-white uppercase tracking-widest text-xs">Añadir Registro</h2>
                 <button type="button" onclick="closeModal()" class="text-slate-400 hover:text-white p-1 transition-colors"><i class="fas fa-times text-xl"></i></button>
             </div>
 
@@ -179,7 +198,7 @@
             </div>
 
             <form id="new-task-form" class="space-y-4 md:space-y-5">
-                <!-- BOTONES DE ENTRADA RÁPIDA -->
+                <input type="hidden" id="edit-task-id" value="">
                 <div>
                     <label class="block font-semibold text-slate-400 mb-2 uppercase tracking-wider text-[10px]">¿Qué deseas añadir?</label>
                     <div class="flex gap-2">
@@ -192,7 +211,7 @@
 
                 <div class="text-left text-xs">
                     <label class="block font-semibold text-slate-400 mb-1 uppercase tracking-wider" id="label-title">Título / Artículo</label>
-                    <input type="text" id="task-title" required autocomplete="off" placeholder="Ej: Revisar correos, Cinta aislante..." class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-3 text-white focus:border-cyan-500 outline-none transition-colors shadow-inner text-sm">
+                    <input type="text" id="task-title" required autocomplete="off" placeholder="Ej: Revisar correos..." class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-3 text-white focus:border-cyan-500 outline-none transition-colors shadow-inner text-sm">
                 </div>
                 
                 <div class="text-left text-xs">
@@ -205,9 +224,19 @@
                     <input type="text" id="task-cat" value="General" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white outline-none">
                 </div>
 
+                <div class="grid grid-cols-2 gap-4 text-left text-xs" id="datetime-container">
+                    <div>
+                        <label class="block font-semibold text-slate-400 mb-1 uppercase text-[10px]">Fecha Límite</label>
+                        <input type="date" id="task-date" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white" style="color-scheme: dark;">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-400 mb-1 uppercase text-[10px]">Hora Límite</label>
+                        <input type="time" id="task-time" class="w-full bg-[#0f1115] border border-gray-700 rounded-lg px-3 py-2 text-white">
+                    </div>
+                </div>
+
                 <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-800">
-                    <span class="text-slate-600 italic text-[10px] hidden md:block">Fecha y hora automáticas</span>
-                    <div class="flex gap-3 w-full md:w-auto justify-end">
+                    <div class="flex gap-3 w-full justify-end">
                         <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white transition-colors">Cancelar</button>
                         <button type="submit" class="px-8 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg shadow-lg active:scale-95 transition-all">Guardar</button>
                     </div>
@@ -217,8 +246,11 @@
     </div>
 
     <script>
-        // --- ESTADO DE LA VISTA ---
+        // --- ESTADO Y DATOS LOCALES ---
         let currentView = 'dashboard'; 
+        let tasks = JSON.parse(localStorage.getItem('kanban_tasks')) || [];
+        // Filtro anti-zombies para tareas eliminadas
+        let deletedTaskIds = JSON.parse(localStorage.getItem('kanban_deleted')) || [];
 
         // --- CONFIGURACIÓN DINÁMICA ---
         let aiKey = localStorage.getItem('app_gemini_key') || "AIzaSyAS994jGxpb0-X9S6pnuC5BDhrRaGiMBEo"; 
@@ -251,10 +283,8 @@
             }
             
             closeConfigModal();
-            manualSync(); 
+            manualSync(false); 
         }
-
-        let tasks = JSON.parse(localStorage.getItem('kanban_tasks')) || [];
 
         const COLUMNS = [
             { id: 'Prioridad Alta', title: '🔥 PRIORIDAD ALTA', bg: 'bg-[#1f1616]' },
@@ -265,7 +295,96 @@
         ];
 
         // ==========================================
-        // SISTEMA DE PESTAÑAS (VISTAS)
+        // ALARMA SONORA PARA TAREAS URGENTES
+        // ==========================================
+        let audioCtx = null;
+        let beepInterval = null;
+
+        document.addEventListener('click', () => {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }, { once: true });
+
+        function triggerAlarm(title) {
+            const banner = document.getElementById('alarm-banner');
+            if (banner.classList.contains('hidden')) {
+                document.getElementById('alarm-task-title').innerText = title;
+                banner.classList.remove('hidden');
+                
+                if (!beepInterval) {
+                    beepInterval = setInterval(() => {
+                        if (audioCtx) {
+                            if(audioCtx.state === 'suspended') audioCtx.resume();
+                            const osc = audioCtx.createOscillator();
+                            const gain = audioCtx.createGain();
+                            osc.type = 'square';
+                            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                            osc.frequency.setValueAtTime(1200, audioCtx.currentTime + 0.2);
+                            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                            osc.connect(gain);
+                            gain.connect(audioCtx.destination);
+                            osc.start();
+                            osc.stop(audioCtx.currentTime + 0.4);
+                        }
+                    }, 1500);
+                }
+            }
+        }
+
+        function stopAlarm() {
+            document.getElementById('alarm-banner').classList.add('hidden');
+            if (beepInterval) {
+                clearInterval(beepInterval);
+                beepInterval = null;
+            }
+
+            let updated = false;
+            const now = new Date();
+            
+            tasks.forEach(t => {
+                if (t.priority === 'Alta' && t.progress < 100 && !t.alarmStopped) {
+                    if(t.date && t.time) {
+                        const taskTime = new Date(`${t.date}T${t.time}`);
+                        if (!isNaN(taskTime.getTime())) {
+                            const diffHours = (taskTime - now) / (1000 * 60 * 60);
+                            if (diffHours <= 1 && diffHours > -24) {
+                                t.alarmStopped = true;
+                                updated = true;
+                            }
+                        }
+                    }
+                }
+            });
+
+            if(updated) saveTasks();
+        }
+
+        function checkAlarms() {
+            const now = new Date();
+            let ringingTitle = null;
+
+            tasks.forEach(task => {
+                if (task.priority === 'Alta' && task.progress < 100 && !task.alarmStopped) {
+                    if(task.date && task.time) {
+                        const taskTime = new Date(`${task.date}T${task.time}`);
+                        if (!isNaN(taskTime.getTime())) {
+                            const diffMs = taskTime - now;
+                            const diffHours = diffMs / (1000 * 60 * 60);
+                            if (diffHours <= 1 && diffHours > -24) {
+                                ringingTitle = task.title;
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (ringingTitle) triggerAlarm(ringingTitle);
+        }
+        setInterval(checkAlarms, 10000);
+
+        // ==========================================
+        // SISTEMA DE PESTAÑAS
         // ==========================================
         function switchView(view) {
             currentView = view;
@@ -295,7 +414,7 @@
         }
 
         // ==========================================
-        // CONEXIÓN CON GOOGLE SHEETS
+        // CONEXIÓN ROBUSTA CON GOOGLE SHEETS
         // ==========================================
         async function fetchTasksFromSheets() {
             try {
@@ -303,12 +422,40 @@
                 const data = await response.json();
                 
                 if(Array.isArray(data)) {
-                    tasks = data.map(task => {
-                        if (task.date && task.date.includes('T')) task.date = task.date.split('T')[0];
-                        if (task.time && task.time.includes('T')) task.time = task.time.split('T')[1].substring(0, 5);
-                        else if (task.time && task.time.length > 5) task.time = task.time.substring(0, 5);
-                        return task;
+                    const now = Date.now();
+                    
+                    // Limpiar filtro Anti-Zombies (borrar IDs viejos de más de 30 mins)
+                    deletedTaskIds = deletedTaskIds.filter(d => now - d.time < 1800000);
+                    localStorage.setItem('kanban_deleted', JSON.stringify(deletedTaskIds));
+                    const justDeletedIds = deletedTaskIds.map(d => d.id);
+
+                    // Filtrar datos que vienen del servidor para quitar los eliminados recientes (anti-zombie)
+                    const validServerData = data.filter(serverTask => !justDeletedIds.includes(serverTask.id));
+
+                    const mergedTasks = validServerData.map(serverTask => {
+                        // Arreglar fechas
+                        if (serverTask.date && serverTask.date.includes('T')) serverTask.date = serverTask.date.split('T')[0];
+                        if (serverTask.time && serverTask.time.includes('T')) serverTask.time = serverTask.time.split('T')[1].substring(0, 5);
+                        else if (serverTask.time && serverTask.time.length > 5) serverTask.time = serverTask.time.substring(0, 5);
+                        
+                        const localTask = tasks.find(t => t.id === serverTask.id);
+                        if (localTask) {
+                            if (localTask.alarmStopped) serverTask.alarmStopped = true;
+                            
+                            // BLINDAJE ANTI-SOBREESCRITURA (RACE CONDITION)
+                            // Si el usuario modificó esta tarea en los últimos 2 minutos, Google Sheets no la sobreescribe.
+                            if (localTask.lastModified && (now - localTask.lastModified < 120000)) {
+                                return localTask;
+                            }
+                        }
+                        return serverTask;
                     });
+
+                    // Identificar si tenemos tareas NUEVAS locales que el servidor aún no tiene y las preservamos
+                    const serverIds = mergedTasks.map(t => t.id);
+                    const pendingLocalTasks = tasks.filter(t => !serverIds.includes(t.id) && t.lastModified && (now - t.lastModified < 120000));
+
+                    tasks = [...mergedTasks, ...pendingLocalTasks];
                     saveTasks(); 
                 }
             } catch (error) {
@@ -316,18 +463,31 @@
             } finally {
                 document.getElementById('loading-overlay').style.display = 'none';
                 renderBoard();
+                checkAlarms(); 
             }
         }
 
         function sendToGoogleSheets(taskData) {
+            // Indicador visual de guardado (Gira el icono en verde)
+            const icon = document.getElementById('sync-icon');
+            if(icon) {
+                icon.classList.add('animate-spin', 'sync-saving');
+            }
+
             fetch(googleSheetUrl, {
                 method: 'POST',
                 mode: 'no-cors', 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(taskData)
             }).then(() => {
-                console.log("Cambio sincronizado con éxito.");
-            }).catch(console.error);
+                // Al terminar de enviar, detenemos la animación tras 1 segundo
+                setTimeout(() => {
+                    if(icon) icon.classList.remove('animate-spin', 'sync-saving');
+                }, 1000);
+            }).catch(error => {
+                console.error(error);
+                if(icon) icon.classList.remove('animate-spin', 'sync-saving');
+            });
         }
 
         function saveTasks() {
@@ -337,15 +497,22 @@
         // ==========================================
         // UI Y RELOJ
         // ==========================================
-        function manualSync() {
+        function manualSync(isManualClick = true) {
             const icon = document.getElementById('sync-icon');
             if(icon) icon.classList.add('animate-spin'); 
-            document.getElementById('loading-overlay').style.display = 'flex';
+            
+            // Si el usuario hizo click a propósito, mostramos la pantalla de carga para que sepa que está forzando todo
+            if (isManualClick) {
+                document.getElementById('loading-overlay').style.display = 'flex';
+            }
             
             fetchTasksFromSheets().finally(() => {
                 if(icon) icon.classList.remove('animate-spin'); 
             });
         }
+
+        // AUTO-SYNC EN SEGUNDO PLANO CADA 60 SEGUNDOS
+        setInterval(() => manualSync(false), 60000);
 
         function toggleFullScreen() {
             const icon = document.querySelector('#btn-fullscreen i');
@@ -417,7 +584,7 @@
                             actionButtons = `
                                 <div class="flex flex-col gap-1.5 w-full">
                                     <button onclick="updateTaskProgress('${task.id}', 0)" class="w-full bg-purple-900/30 hover:bg-purple-900/50 border border-purple-500 text-[9px] py-1.5 rounded text-purple-200 transition-colors font-bold">✓ ¡Comprado! (Deshacer)</button>
-                                    <button onclick="openObsModal('${task.id}')" class="w-full bg-blue-900/20 hover:bg-blue-900/40 border border-blue-500/50 text-[9px] py-1.5 rounded text-blue-300 transition-colors font-bold flex items-center justify-center gap-1"><i class="fas fa-edit"></i> Añadir Nota</button>
+                                    <button onclick="window.openObsModal('${task.id}')" class="w-full bg-blue-900/20 hover:bg-blue-900/40 border border-blue-500/50 text-[9px] py-1.5 rounded text-blue-300 transition-colors font-bold flex items-center justify-center gap-1"><i class="fas fa-edit"></i> Añadir Nota</button>
                                 </div>`;
                         } else {
                             actionButtons = `<button onclick="updateTaskProgress('${task.id}', 100)" class="w-full bg-transparent hover:bg-purple-900/20 border border-purple-900/50 text-[9px] py-1.5 rounded text-purple-400 transition-colors font-bold">Marcar como Comprado</button>`;
@@ -427,7 +594,7 @@
                             actionButtons = `
                                 <div class="flex flex-col gap-1.5 w-full">
                                     <button onclick="updateTaskProgress('${task.id}', 0)" class="w-full bg-green-900/30 hover:bg-green-900/50 border border-green-500 text-[9px] py-1.5 rounded text-green-200 transition-colors font-bold">✓ Completada (Deshacer)</button>
-                                    <button onclick="openObsModal('${task.id}')" class="w-full bg-blue-900/20 hover:bg-blue-900/40 border border-blue-500/50 text-[9px] py-1.5 rounded text-blue-300 transition-colors font-bold flex items-center justify-center gap-1"><i class="fas fa-edit"></i> Añadir Observación</button>
+                                    <button onclick="window.openObsModal('${task.id}')" class="w-full bg-blue-900/20 hover:bg-blue-900/40 border border-blue-500/50 text-[9px] py-1.5 rounded text-blue-300 transition-colors font-bold flex items-center justify-center gap-1"><i class="fas fa-edit"></i> Añadir Observación</button>
                                 </div>`;
                         } else {
                             actionButtons = `<div class="flex gap-1 w-full">` + 
@@ -438,13 +605,18 @@
 
                     colHTML += `<div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-[#1c212b] border border-gray-800 rounded-lg p-3 relative task-card group">
                         
-                        <!-- BOTÓN ELIMINAR MEJORADO -->
+                        <!-- BOTÓN ELIMINAR -->
                         <button onclick="deleteTask('${task.id}')" class="absolute top-2 right-2 flex items-center justify-center w-7 h-7 text-gray-500 hover:text-red-400 bg-[#0f1115] border border-gray-700 hover:border-red-500/50 rounded transition-all z-10 shadow-sm" title="Eliminar">
                             <i class="fas fa-trash text-xs"></i>
                         </button>
 
+                        <!-- BOTÓN EDITAR -->
+                        <button onclick="editTask('${task.id}')" class="absolute top-2 right-10 flex items-center justify-center w-7 h-7 text-gray-500 hover:text-blue-400 bg-[#0f1115] border border-gray-700 hover:border-blue-500/50 rounded transition-all z-10 shadow-sm" title="Editar">
+                            <i class="fas fa-pencil-alt text-xs"></i>
+                        </button>
+
                         <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg ${task.priority === 'Alta' ? 'bg-red-500' : (isCompra ? 'bg-purple-500' : (task.progress === 100 ? 'bg-green-500' : 'bg-cyan-500'))}"></div>
-                        <div class="flex-1 pl-2 pr-8 w-full md:w-auto min-w-0 text-left">
+                        <div class="flex-1 pl-2 pr-16 w-full md:w-auto min-w-0 text-left">
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="text-[9px] font-bold uppercase text-slate-300 bg-[#0f1115] px-1.5 py-0.5 rounded border border-gray-800/50">${task.category}</span>
                                 <span class="text-[9px] font-bold uppercase ${task.priority === 'Alta' ? 'text-red-400' : (isCompra ? 'text-purple-400' : (task.progress === 100 ? 'text-green-400' : 'text-cyan-400'))}">${task.priority}</span>
@@ -473,9 +645,14 @@
             });
         }
 
+        // ==========================================
+        // ACCIONES DE TAREAS Y OBSERVACIONES
+        // ==========================================
         function updateTaskProgress(id, val) {
             const task = tasks.find(t => t.id === id);
             if(task) {
+                task.lastModified = Date.now(); // SELLO DE TIEMPO
+
                 if(task.category === 'Compras' || task.status === 'Compras') {
                     task.progress = val;
                     task.status = 'Compras'; 
@@ -496,15 +673,17 @@
         function deleteTask(id) {
             if(confirm("¿Estás seguro de eliminar este registro?")) {
                 tasks = tasks.filter(t => t.id !== id);
+                
+                // Guardar en Anti-Zombies
+                deletedTaskIds.push({id: id, time: Date.now()});
+                localStorage.setItem('kanban_deleted', JSON.stringify(deletedTaskIds));
+                
                 saveTasks();
                 renderBoard();
                 sendToGoogleSheets({ id: id, action: 'delete' });
             }
         }
 
-        // ==========================================
-        // MODAL DE OBSERVACIONES
-        // ==========================================
         window.openObsModal = function(id) {
             const task = tasks.find(t => t.id === id);
             if(!task) return;
@@ -528,6 +707,7 @@
             if(obsText) {
                 const task = tasks.find(t => t.id === id);
                 if(task) {
+                    task.lastModified = Date.now(); // SELLO DE TIEMPO
                     const prefix = task.desc ? task.desc + "\n\n" : "";
                     task.desc = prefix + "📌 OBSERVACIÓN: " + obsText;
                     saveTasks();
@@ -539,11 +719,29 @@
         });
 
         // ==========================================
-        // FORMULARIO MANUAL MEJORADO
+        // CREACIÓN Y EDICIÓN
         // ==========================================
+        window.editTask = function(id) {
+            const task = tasks.find(t => t.id === id);
+            if(!task) return;
+
+            document.getElementById('edit-task-id').value = task.id;
+            document.getElementById('modal-title-text').innerText = "Editar Registro";
+            document.getElementById('task-modal').classList.remove('hidden');
+
+            if (task.category === 'Compras' || task.status === 'Compras') setTaskType('compra');
+            else if (task.priority === 'Alta') setTaskType('urgente');
+            else setTaskType('normal');
+
+            document.getElementById('task-title').value = task.title;
+            document.getElementById('task-desc').value = task.desc || "";
+            document.getElementById('task-cat').value = task.category;
+            document.getElementById('task-date').value = task.date;
+            document.getElementById('task-time').value = task.time;
+        }
+
         function setTaskType(type) {
             document.getElementById('task-type').value = type;
-            
             const btnNormal = document.getElementById('btn-type-normal');
             const btnUrgente = document.getElementById('btn-type-urgente');
             const btnCompra = document.getElementById('btn-type-compra');
@@ -567,12 +765,102 @@
                 catContainer.style.display = 'none'; 
                 titleLabel.innerText = "Artículo a Comprar";
             }
-            
             document.getElementById('task-title').focus();
         }
 
+        function openModal() {
+            document.getElementById('edit-task-id').value = "";
+            document.getElementById('modal-title-text').innerText = "Añadir Registro";
+            document.getElementById('task-modal').classList.remove('hidden');
+            
+            if (currentView === 'shopping') setTaskType('compra');
+            else setTaskType('normal'); 
+            
+            const now = new Date();
+            document.getElementById('task-date').value = now.toISOString().split('T')[0];
+            document.getElementById('task-time').value = now.toTimeString().slice(0,5);
+            setTimeout(() => document.getElementById('task-title').focus(), 100);
+        }
+
+        function closeModal() {
+            document.getElementById('task-modal').classList.add('hidden');
+            document.getElementById('new-task-form').reset();
+            
+            document.getElementById('ai-input').value = "";
+            document.getElementById('edit-task-id').value = "";
+            finalHistory = ""; 
+            if (recognition) recognition.stop();
+            isRecording = false;
+            const iconEl = document.getElementById('mic-icon');
+            if (iconEl) {
+                iconEl.className = "fas fa-microphone text-lg";
+                iconEl.classList.remove('mic-active');
+            }
+        }
+
+        document.getElementById('new-task-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const editId = document.getElementById('edit-task-id').value;
+            const type = document.getElementById('task-type').value;
+            let prio = 'Baja';
+            let status = 'Pendientes';
+            let cat = document.getElementById('task-cat').value;
+            
+            if (type === 'urgente') {
+                prio = 'Alta';
+                status = 'Prioridad Alta';
+            } else if (type === 'compra') {
+                prio = 'Baja'; 
+                status = 'Compras';
+                cat = 'Compras';
+            }
+
+            if (editId) {
+                const t = tasks.find(t => t.id === editId);
+                if (t) {
+                    t.title = document.getElementById('task-title').value;
+                    t.desc = document.getElementById('task-desc').value;
+                    t.category = cat;
+                    t.priority = prio;
+                    t.date = document.getElementById('task-date').value;
+                    t.time = document.getElementById('task-time').value;
+                    t.lastModified = Date.now(); // SELLO DE TIEMPO
+
+                    if (t.progress < 100 && t.category !== 'Compras') t.status = status;
+                    else if (t.category === 'Compras') t.status = 'Compras';
+
+                    saveTasks();
+                    sendToGoogleSheets(t); 
+                }
+            } else {
+                const newTask = {
+                    id: 't' + Date.now(),
+                    title: document.getElementById('task-title').value,
+                    desc: document.getElementById('task-desc').value,
+                    category: cat,
+                    priority: prio,
+                    status: status,
+                    progress: 0,
+                    date: document.getElementById('task-date').value || new Date().toISOString().split('T')[0],
+                    time: document.getElementById('task-time').value || new Date().toTimeString().slice(0,5),
+                    alarmStopped: false,
+                    lastModified: Date.now() // SELLO DE TIEMPO
+                };
+                
+                tasks.push(newTask);
+                saveTasks();
+                sendToGoogleSheets(newTask);
+            }
+            
+            if (type === 'compra' && currentView !== 'shopping') switchView('shopping');
+            else renderBoard();
+            
+            closeModal();
+        });
+
         // ==========================================
-        // MICRÓFONO INMORTAL Y ACUMULATIVO
+        // MICRÓFONO E IA GEMINI
         // ==========================================
         let recognition = null;
         let isRecording = false;
@@ -644,9 +932,6 @@
             recognition.start();
         }
 
-        // ==========================================
-        // MOTOR DE IA: GOOGLE GEMINI
-        // ==========================================
         async function processWithGemini(text) {
             const statusEl = document.getElementById('ai-status');
             const statusText = document.getElementById('status-text');
@@ -674,13 +959,10 @@ Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen 
 
             try {
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${aiKey}`;
-                
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }]
-                    })
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
 
                 if (!response.ok) {
@@ -690,18 +972,15 @@ Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen 
 
                 const result = await response.json();
                 let rawContent = result.candidates[0].content.parts[0].text;
-                
                 rawContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
                 const data = JSON.parse(rawContent);
 
                 document.getElementById('task-title').value = data.title || "";
                 document.getElementById('task-desc').value = data.desc || "";
                 
-                if (data.category && data.category.toLowerCase().includes("compra")) {
-                    setTaskType('compra');
-                } else if (data.priority === "Alta") {
-                    setTaskType('urgente');
-                } else {
+                if (data.category && data.category.toLowerCase().includes("compra")) setTaskType('compra');
+                else if (data.priority === "Alta") setTaskType('urgente');
+                else {
                     setTaskType('normal');
                     document.getElementById('task-cat').value = data.category || "General";
                 }
@@ -712,93 +991,18 @@ Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen 
 
             } catch (e) {
                 console.error("Error Gemini:", e);
-                
                 document.getElementById('task-title').value = text;
                 setTaskType('normal');
-                
                 statusText.innerText = "Texto pegado sin IA";
                 spinner.className = "fas fa-exclamation-triangle text-yellow-400";
                 
                 let userFriendlyError = e.message;
-                if (userFriendlyError.includes("API_KEY_INVALID")) {
-                    userFriendlyError = "Tu API Key es inválida o está vencida.";
-                }
+                if (userFriendlyError.includes("API_KEY_INVALID")) userFriendlyError = "Tu API Key es inválida o está vencida.";
                 
-                errorInfo.innerHTML = `<b>Aviso IA:</b> ${userFriendlyError}. <br/><i>El texto se pegó en el título para que no lo pierdas.</i>`;
+                errorInfo.innerHTML = `<b>Aviso IA:</b> ${userFriendlyError}. <br/><i>El texto se pegó en el título.</i>`;
                 errorInfo.classList.remove('hidden');
             }
         }
-
-        function openModal() {
-            document.getElementById('task-modal').classList.remove('hidden');
-            
-            if (currentView === 'shopping') {
-                setTaskType('compra');
-            } else {
-                setTaskType('normal'); 
-            }
-            
-            setTimeout(() => document.getElementById('task-title').focus(), 100);
-        }
-
-        function closeModal() {
-            document.getElementById('task-modal').classList.add('hidden');
-            document.getElementById('new-task-form').reset();
-            
-            document.getElementById('ai-input').value = "";
-            finalHistory = ""; 
-            if (recognition) recognition.stop();
-            isRecording = false;
-            const iconEl = document.getElementById('mic-icon');
-            if (iconEl) {
-                iconEl.className = "fas fa-microphone text-lg";
-                iconEl.classList.remove('mic-active');
-            }
-        }
-
-        document.getElementById('new-task-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            const type = document.getElementById('task-type').value;
-            let prio = 'Baja';
-            let status = 'Pendientes';
-            let cat = document.getElementById('task-cat').value;
-            
-            if (type === 'urgente') {
-                prio = 'Alta';
-                status = 'Prioridad Alta';
-            } else if (type === 'compra') {
-                prio = 'Baja'; 
-                status = 'Compras';
-                cat = 'Compras';
-            }
-
-            const now = new Date();
-
-            const newTask = {
-                id: 't' + Date.now(),
-                title: document.getElementById('task-title').value,
-                desc: document.getElementById('task-desc').value,
-                category: cat,
-                priority: prio,
-                status: status,
-                progress: 0,
-                date: now.toISOString().split('T')[0],
-                time: now.toTimeString().slice(0,5)
-            };
-            
-            tasks.push(newTask);
-            saveTasks();
-            
-            if (type === 'compra' && currentView !== 'shopping') {
-                switchView('shopping');
-            } else {
-                renderBoard();
-            }
-            
-            closeModal();
-            sendToGoogleSheets(newTask);
-        });
 
         // INICIO DE LA APLICACIÓN
         switchView('dashboard'); 
