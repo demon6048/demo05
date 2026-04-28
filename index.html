@@ -105,6 +105,9 @@
         <button onclick="switchView('shopping')" id="tab-shopping" class="px-5 py-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap">
             <i class="fas fa-shopping-cart"></i> Lista de Compras
         </button>
+        <button onclick="switchView('cobrar')" id="tab-cobrar" class="px-5 py-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap">
+            <i class="fas fa-hand-holding-usd"></i> Por Cobrar
+        </button>
         <button onclick="switchView('completed')" id="tab-completed" class="px-5 py-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap">
             <i class="fas fa-check-double"></i> Completadas
         </button>
@@ -291,6 +294,7 @@
             { id: 'En Proceso', title: '⚙️ EN PROCESO', bg: 'bg-[#161c22]' },
             { id: 'Pendientes', title: '📋 PENDIENTES / OTROS', bg: 'bg-[#1a1a1a]' },
             { id: 'Compras', title: '🛒 PARA COMPRAR', bg: 'bg-[#1e1a24]' },
+            { id: 'Por Cobrar', title: '💸 POR COBRAR', bg: 'bg-[#2a2416]' },
             { id: 'Completadas', title: '✅ COMPLETADAS', bg: 'bg-[#161f18]' }
         ];
 
@@ -423,6 +427,7 @@
             currentView = view;
             const tabDash = document.getElementById('tab-dashboard');
             const tabShop = document.getElementById('tab-shopping');
+            const tabCobrar = document.getElementById('tab-cobrar');
             const tabComp = document.getElementById('tab-completed');
             const statsContainer = document.getElementById('stats-container');
             
@@ -430,6 +435,7 @@
 
             tabDash.className = inactiveClass;
             tabShop.className = inactiveClass;
+            if(tabCobrar) tabCobrar.className = inactiveClass;
             if(tabComp) tabComp.className = inactiveClass;
 
             if (view === 'dashboard') {
@@ -437,6 +443,9 @@
                 statsContainer.style.display = 'flex'; 
             } else if (view === 'shopping') {
                 tabShop.className = "px-5 py-3 text-sm font-bold border-b-2 border-purple-500 text-purple-400 transition-colors flex items-center gap-2 whitespace-nowrap bg-[#0f1115]";
+                statsContainer.style.display = 'none'; 
+            } else if (view === 'cobrar') {
+                if(tabCobrar) tabCobrar.className = "px-5 py-3 text-sm font-bold border-b-2 border-amber-500 text-amber-400 transition-colors flex items-center gap-2 whitespace-nowrap bg-[#0f1115]";
                 statsContainer.style.display = 'none'; 
             } else if (view === 'completed') {
                 if(tabComp) tabComp.className = "px-5 py-3 text-sm font-bold border-b-2 border-green-500 text-green-400 transition-colors flex items-center gap-2 whitespace-nowrap bg-[#0f1115]";
@@ -575,13 +584,15 @@
             
             document.getElementById('stat-pending').innerText = tasks.filter(t => t.status === 'Pendientes' || t.status === 'Prioridad Alta').length;
             document.getElementById('stat-progress').innerText = tasks.filter(t => t.status === 'En Proceso').length;
-            document.getElementById('stat-completed').innerText = tasks.filter(t => t.status === 'Completadas' && t.category !== 'Compras').length;
+            document.getElementById('stat-completed').innerText = tasks.filter(t => t.status === 'Completadas' && t.category !== 'Compras' && t.category !== 'Por Cobrar').length;
 
             let visibleColumns = [];
             if (currentView === 'dashboard') {
-                visibleColumns = COLUMNS.filter(c => c.id !== 'Compras' && c.id !== 'Completadas'); 
+                visibleColumns = COLUMNS.filter(c => c.id !== 'Compras' && c.id !== 'Completadas' && c.id !== 'Por Cobrar'); 
             } else if (currentView === 'shopping') {
                 visibleColumns = COLUMNS.filter(c => c.id === 'Compras'); 
+            } else if (currentView === 'cobrar') {
+                visibleColumns = COLUMNS.filter(c => c.id === 'Por Cobrar'); 
             } else if (currentView === 'completed') {
                 visibleColumns = COLUMNS.filter(c => c.id === 'Completadas'); 
             }
@@ -591,6 +602,7 @@
                 
                 let titleText = col.title;
                 if (currentView === 'shopping') titleText = '🛒 TU LISTA DE COMPRAS';
+                if (currentView === 'cobrar') titleText = '💸 CUENTAS POR COBRAR';
                 if (currentView === 'completed') titleText = '✅ TAREAS FINALIZADAS';
 
                 let colHTML = `<div class="w-full flex flex-col bg-[#161b22] border border-gray-800 rounded-xl overflow-hidden shadow-lg mb-4 text-left font-semibold">
@@ -605,8 +617,9 @@
                 }
 
                 colTasks.forEach(task => {
-                    const statusColor = task.progress === 100 ? 'bg-green-500' : (task.category === 'Compras' ? 'bg-purple-500' : 'bg-cyan-500');
                     const isCompra = task.category === 'Compras' || task.status === 'Compras';
+                    const isCobrar = task.category === 'Por Cobrar' || task.status === 'Por Cobrar';
+                    const statusColor = task.progress === 100 ? 'bg-green-500' : (isCompra ? 'bg-purple-500' : (isCobrar ? 'bg-amber-500' : 'bg-cyan-500'));
                     
                     const isExpanded = currentView === 'completed' || task.progress === 100;
                     const descHTML = task.desc ? `<div class="text-[10px] text-slate-400 text-left mt-1.5 ${isExpanded ? 'whitespace-pre-wrap' : 'truncate'} leading-relaxed bg-[#0f1115] p-2 rounded border border-gray-800/50">${task.desc}</div>` : '';
@@ -621,6 +634,16 @@
                                 </div>`;
                         } else {
                             actionButtons = `<button onclick="updateTaskProgress('${task.id}', 100)" class="w-full bg-transparent hover:bg-purple-900/20 border border-purple-900/50 text-[9px] py-1.5 rounded text-purple-400 transition-colors font-bold">Marcar como Comprado</button>`;
+                        }
+                    } else if (isCobrar) {
+                        if (task.progress === 100) {
+                            actionButtons = `
+                                <div class="flex flex-col gap-1.5 w-full">
+                                    <button onclick="updateTaskProgress('${task.id}', 0)" class="w-full bg-amber-900/30 hover:bg-amber-900/50 border border-amber-500/50 text-[9px] py-1.5 rounded text-amber-200 transition-colors font-bold">✓ ¡Pagado! (Deshacer)</button>
+                                    <button onclick="window.openObsModal('${task.id}')" class="w-full bg-blue-900/20 hover:bg-blue-900/40 border border-blue-500/50 text-[9px] py-1.5 rounded text-blue-300 transition-colors font-bold flex items-center justify-center gap-1"><i class="fas fa-edit"></i> Añadir Nota</button>
+                                </div>`;
+                        } else {
+                            actionButtons = `<button onclick="updateTaskProgress('${task.id}', 100)" class="w-full bg-transparent hover:bg-amber-900/20 border border-amber-900/50 text-[9px] py-1.5 rounded text-amber-400 transition-colors font-bold">Marcar como Pagado</button>`;
                         }
                     } else {
                         if (task.progress === 100) {
@@ -648,11 +671,11 @@
                             <i class="fas fa-pencil-alt text-xs"></i>
                         </button>
 
-                        <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg ${task.priority === 'Alta' ? 'bg-red-500' : (isCompra ? 'bg-purple-500' : (task.progress === 100 ? 'bg-green-500' : 'bg-cyan-500'))}"></div>
+                        <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg ${task.priority === 'Alta' ? 'bg-red-500' : (isCompra ? 'bg-purple-500' : (isCobrar ? 'bg-amber-500' : (task.progress === 100 ? 'bg-green-500' : 'bg-cyan-500')))}"></div>
                         <div class="flex-1 pl-2 pr-16 w-full md:w-auto min-w-0 text-left">
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="text-[9px] font-bold uppercase text-slate-300 bg-[#0f1115] px-1.5 py-0.5 rounded border border-gray-800/50">${task.category}</span>
-                                <span class="text-[9px] font-bold uppercase ${task.priority === 'Alta' ? 'text-red-400' : (isCompra ? 'text-purple-400' : (task.progress === 100 ? 'text-green-400' : 'text-cyan-400'))}">${task.priority}</span>
+                                <span class="text-[9px] font-bold uppercase ${task.priority === 'Alta' ? 'text-red-400' : (isCompra ? 'text-purple-400' : (isCobrar ? 'text-amber-400' : (task.progress === 100 ? 'text-green-400' : 'text-cyan-400')))}">${task.priority}</span>
                             </div>
                             <h3 class="font-bold text-white text-base md:text-[17px] truncate text-left ${task.progress === 100 ? 'line-through text-slate-500' : ''}">${task.title}</h3>
                             ${descHTML}
@@ -663,8 +686,8 @@
                         </div>
                         <div class="w-full md:w-[320px] flex flex-col shrink-0 self-center">
                             <div class="flex justify-between items-end mb-1">
-                                <span class="text-[9px] font-bold text-slate-200 uppercase tracking-widest">${isCompra ? 'Estado de Compra' : 'Avance'}</span>
-                                <span class="text-[10px] font-bold font-mono ${isCompra ? 'text-purple-400' : (task.progress === 100 ? 'text-green-400' : 'text-cyan-400')}">${task.progress}%</span>
+                                <span class="text-[9px] font-bold text-slate-200 uppercase tracking-widest">${isCompra ? 'Estado de Compra' : (isCobrar ? 'Estado de Deuda' : 'Avance')}</span>
+                                <span class="text-[10px] font-bold font-mono ${isCompra ? 'text-purple-400' : (isCobrar ? 'text-amber-400' : (task.progress === 100 ? 'text-green-400' : 'text-cyan-400'))}">${task.progress}%</span>
                             </div>
                             <div class="w-full h-1 bg-[#0f1115] rounded-full overflow-hidden mb-2 shadow-inner">
                                 <div class="h-full transition-all duration-500 ${statusColor}" style="width: ${task.progress}%"></div>
@@ -689,6 +712,9 @@
                 if(task.category === 'Compras' || task.status === 'Compras') {
                     task.progress = val;
                     task.status = 'Compras'; 
+                } else if(task.category === 'Por Cobrar' || task.status === 'Por Cobrar') {
+                    task.progress = val;
+                    task.status = 'Por Cobrar'; 
                 } else {
                     task.progress = val;
                     if(val === 100) task.status = 'Completadas';
@@ -755,22 +781,36 @@
         // CREACIÓN Y EDICIÓN
         // ==========================================
         window.editTask = function(id) {
-            const task = tasks.find(t => t.id === id);
-            if(!task) return;
+            try {
+                // 1. Buscamos la tarea de forma segura
+                const task = tasks.find(t => String(t.id) === String(id));
+                if(!task) return;
 
-            document.getElementById('edit-task-id').value = task.id;
-            document.getElementById('modal-title-text').innerText = "Editar Registro";
-            document.getElementById('task-modal').classList.remove('hidden');
+                // 2. Rellenamos TODOS los datos ANTES de mostrar la ventana
+                document.getElementById('edit-task-id').value = task.id;
+                document.getElementById('task-title').value = task.title || "";
+                document.getElementById('task-desc').value = task.desc || "";
+                document.getElementById('task-cat').value = task.category || "General";
+                
+                if (task.date) document.getElementById('task-date').value = task.date.split('T')[0];
+                else document.getElementById('task-date').value = "";
+                
+                if (task.time) document.getElementById('task-time').value = task.time.substring(0, 5);
+                else document.getElementById('task-time').value = "";
 
-            if (task.category === 'Compras' || task.status === 'Compras') setTaskType('compra');
-            else if (task.priority === 'Alta') setTaskType('urgente');
-            else setTaskType('normal');
+                // 3. Ajustamos el estilo de los botones rápidos
+                if (task.category === 'Compras' || task.status === 'Compras') setTaskType('compra');
+                else if (task.category === 'Por Cobrar' || task.status === 'Por Cobrar') setTaskType('cobrar');
+                else if (task.priority === 'Alta') setTaskType('urgente');
+                else setTaskType('normal');
 
-            document.getElementById('task-title').value = task.title;
-            document.getElementById('task-desc').value = task.desc || "";
-            document.getElementById('task-cat').value = task.category;
-            document.getElementById('task-date').value = task.date;
-            document.getElementById('task-time').value = task.time;
+                // 4. Mostramos la ventana y cambiamos el título
+                document.getElementById('modal-title-text').innerText = "Editar Registro";
+                document.getElementById('task-modal').classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Error al abrir edición:", error);
+            }
         }
 
         function setTaskType(type) {
@@ -778,10 +818,11 @@
             const btnNormal = document.getElementById('btn-type-normal');
             const btnUrgente = document.getElementById('btn-type-urgente');
             const btnCompra = document.getElementById('btn-type-compra');
+            const btnCobrar = document.getElementById('btn-type-cobrar');
             const catContainer = document.getElementById('category-container');
             const titleLabel = document.getElementById('label-title');
             
-            [btnNormal, btnUrgente, btnCompra].forEach(btn => {
+            [btnNormal, btnUrgente, btnCompra, btnCobrar].forEach(btn => {
                 btn.className = "flex-1 py-2.5 rounded border border-gray-700 bg-[#0f1115] hover:bg-gray-800 text-gray-400 text-xs font-bold transition-all";
             });
             
@@ -797,8 +838,12 @@
                 btnCompra.className = "flex-1 py-2.5 rounded border border-purple-500 bg-purple-500/20 text-purple-300 text-xs font-bold transition-all shadow-inner";
                 catContainer.style.display = 'none'; 
                 titleLabel.innerText = "Artículo a Comprar";
+            } else if (type === 'cobrar') {
+                btnCobrar.className = "flex-1 py-2.5 rounded border border-amber-500 bg-amber-500/20 text-amber-300 text-xs font-bold transition-all shadow-inner";
+                catContainer.style.display = 'none'; 
+                titleLabel.innerText = "Cliente / Servicio (Deuda)";
             }
-            document.getElementById('task-title').focus();
+            // (Eliminado el "focus" forzoso aquí para que no salte el teclado al Editar)
         }
 
         function openModal() {
@@ -807,11 +852,14 @@
             document.getElementById('task-modal').classList.remove('hidden');
             
             if (currentView === 'shopping') setTaskType('compra');
+            else if (currentView === 'cobrar') setTaskType('cobrar');
             else setTaskType('normal'); 
             
             const now = new Date();
             document.getElementById('task-date').value = now.toISOString().split('T')[0];
             document.getElementById('task-time').value = now.toTimeString().slice(0,5);
+            
+            // Aquí sí aplicamos el focus, porque es un registro nuevo y queremos escribir rápido
             setTimeout(() => document.getElementById('task-title').focus(), 100);
         }
 
@@ -847,6 +895,10 @@
                 prio = 'Baja'; 
                 status = 'Compras';
                 cat = 'Compras';
+            } else if (type === 'cobrar') {
+                prio = 'Baja'; 
+                status = 'Por Cobrar';
+                cat = 'Por Cobrar';
             }
 
             if (editId) {
@@ -860,8 +912,9 @@
                     t.time = document.getElementById('task-time').value;
                     t.lastModified = Date.now(); // SELLO DE TIEMPO
 
-                    if (t.progress < 100 && t.category !== 'Compras') t.status = status;
+                    if (t.progress < 100 && t.category !== 'Compras' && t.category !== 'Por Cobrar') t.status = status;
                     else if (t.category === 'Compras') t.status = 'Compras';
+                    else if (t.category === 'Por Cobrar') t.status = 'Por Cobrar';
 
                     saveTasks();
                     sendToGoogleSheets(t); 
@@ -887,6 +940,7 @@
             }
             
             if (type === 'compra' && currentView !== 'shopping') switchView('shopping');
+            else if (type === 'cobrar' && currentView !== 'cobrar') switchView('cobrar');
             else renderBoard();
             
             closeModal();
@@ -988,7 +1042,7 @@
             
             const prompt = `Actúa como un asistente de extracción de datos.
 Texto: "${text}". 
-Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen muy corto", "desc": "detalles completos", "category": "Compras" o "General", "priority": "Alta" o "Baja"}`;
+Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen muy corto", "desc": "detalles completos", "category": "Compras", "Por Cobrar" o "General", "priority": "Alta" o "Baja"}`;
 
             try {
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${aiKey}`;
@@ -1012,6 +1066,7 @@ Devuelve ÚNICAMENTE un objeto JSON con este formato exacto: {"title": "resumen 
                 document.getElementById('task-desc').value = data.desc || "";
                 
                 if (data.category && data.category.toLowerCase().includes("compra")) setTaskType('compra');
+                else if (data.category && data.category.toLowerCase().includes("cobrar")) setTaskType('cobrar');
                 else if (data.priority === "Alta") setTaskType('urgente');
                 else {
                     setTaskType('normal');
